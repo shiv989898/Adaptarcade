@@ -25,21 +25,21 @@ interface DifficultySettings {
 
 const DIFFICULTY_CONFIG: Record<Difficulty, DifficultySettings> = {
   easy: {
-    targetDespawnTime: 3000, // Targets stay a bit longer
-    minSpawnDelay: 700,    // Slightly slower spawn
-    maxSpawnDelay: 1500,
+    targetDespawnTime: 3500,
+    minSpawnDelay: 800,
+    maxSpawnDelay: 1600,
     targetTiers: [
-      { points: 5,  size: 80, color: '#34D399' }, // Larger, fewer points
+      { points: 5,  size: 80, color: '#34D399' }, 
       { points: 8,  size: 70, color: '#EC4899' },
       { points: 10, size: 65, color: 'hsl(var(--primary))' },
     ],
   },
   medium: {
-    targetDespawnTime: 2000, // Default
-    minSpawnDelay: 350,
-    maxSpawnDelay: 700,
+    targetDespawnTime: 2500, 
+    minSpawnDelay: 400,
+    maxSpawnDelay: 800,
     targetTiers: [
-      { points: 20, size: 45, color: 'hsl(var(--accent))' }, // Smaller, more points
+      { points: 20, size: 45, color: 'hsl(var(--accent))' }, 
       { points: 10, size: 60, color: 'hsl(var(--primary))' },
       { points: 5,  size: 75, color: '#34D399' },
       { points: 15, size: 50, color: '#F59E0B' },
@@ -47,11 +47,11 @@ const DIFFICULTY_CONFIG: Record<Difficulty, DifficultySettings> = {
     ],
   },
   hard: {
-    targetDespawnTime: 1200, // Very quick
-    minSpawnDelay: 150,    // Very frequent
-    maxSpawnDelay: 400,
+    targetDespawnTime: 1500, 
+    minSpawnDelay: 200,    
+    maxSpawnDelay: 450,
     targetTiers: [
-      { points: 25, size: 35, color: 'hsl(var(--accent))' }, // Smallest, highest points
+      { points: 25, size: 35, color: 'hsl(var(--accent))' }, 
       { points: 20, size: 40, color: 'hsl(var(--destructive))' },
       { points: 15, size: 45, color: '#F59E0B' },
       { points: 10, size: 50, color: 'hsl(var(--primary))' },
@@ -161,13 +161,14 @@ export const useGameLogic = () => {
       setCountdownValue(currentCountdown);
       if (currentCountdown === 0) {
         clearInterval(countdownTimer);
-        setGameStatus('playing'); // This will trigger the useEffect below
+        setGameStatus('playing'); 
 
         const mainGameTimer = setInterval(() => {
           setTimeLeft(prevTime => {
             if (prevTime <= 1) {
               clearAllTimers();
               setGameStatus('gameOver');
+              // Use the difficulty state at the moment of game over.
               addScoreToLeaderboard({ playerName: playerNameRef.current, score, difficulty: currentDifficulty });
               loadLeaderboard();
               setTargets([]);
@@ -180,8 +181,8 @@ export const useGameLogic = () => {
         gameTimerRef.current = mainGameTimer;
       }
     }, 1000);
-    gameTimerRef.current = countdownTimer; // Initially, gameTimerRef is the countdown
-  }, [clearAllTimers, score, loadLeaderboard]); // Removed currentDifficulty from deps as it's set at the start
+    gameTimerRef.current = countdownTimer; 
+  }, [clearAllTimers, loadLeaderboard]); 
 
 
   useEffect(() => {

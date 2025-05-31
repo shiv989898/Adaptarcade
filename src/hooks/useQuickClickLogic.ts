@@ -31,9 +31,8 @@ export const useQuickClickLogic = () => {
   const playerNameRef = useRef<string>('ClickMaster');
 
   const loadLeaderboard = useCallback(() => {
-    // Use a more generic getLeaderboard or a specific one if keys differ
-    const scores = localStorage.getItem(QUICK_CLICK_LEADERBOARD_KEY);
-    setLeaderboardScores(scores ? JSON.parse(scores) : []);
+    const scoresData = localStorage.getItem(QUICK_CLICK_LEADERBOARD_KEY);
+    setLeaderboardScores(scoresData ? JSON.parse(scoresData) : []);
   }, []);
 
   useEffect(() => {
@@ -62,22 +61,23 @@ export const useQuickClickLogic = () => {
         
         timerIntervalRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
-            if (prevTime <= 1) {
+            if (prevTime <= 0.1) { // Check against small value to ensure it triggers
               clearInterval(timerIntervalRef.current!);
               setGameStatus('gameOver');
-              // Save score
-              const currentScores = leaderboardScores;
+              
+              const finalScore = score; // Capture score at this moment
+              const currentScores = JSON.parse(localStorage.getItem(QUICK_CLICK_LEADERBOARD_KEY) || '[]') as QuickClickScoreEntry[];
               const newEntry: QuickClickScoreEntry = {
                 id: Date.now().toString() + Math.random().toString(36).substring(2,9),
                 playerName: playerNameRef.current,
-                score: score, // final score
+                score: finalScore, 
                 date: new Date().toISOString(),
               };
               currentScores.push(newEntry);
               currentScores.sort((a,b) => b.score - a.score);
               const updatedLeaderboard = currentScores.slice(0, 10);
               localStorage.setItem(QUICK_CLICK_LEADERBOARD_KEY, JSON.stringify(updatedLeaderboard));
-              loadLeaderboard(); // Refresh leaderboard state
+              loadLeaderboard(); 
               return 0;
             }
             return prevTime - 1;
@@ -85,7 +85,7 @@ export const useQuickClickLogic = () => {
         }, 1000);
       }
     }, 1000);
-  }, [clearTimers, score, loadLeaderboard, leaderboardScores]);
+  }, [clearTimers, loadLeaderboard]); // Removed score and leaderboardScores from deps
 
   const handleGameButtonClick = useCallback(() => {
     if (gameStatus !== 'playing') return;
