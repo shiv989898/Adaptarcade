@@ -1,110 +1,53 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import HUD from '@/components/game/HUD';
-import LeaderboardDialog from '@/components/game/LeaderboardDialog';
-import StartScreen from '@/components/game/StartScreen';
-import ReactionGameBoard from '@/components/game/ReactionGameBoard';
-import GameOverScreen from '@/components/game/GameOverScreen';
-import { useGameLogic } from '@/hooks/useGameLogic';
-import { Loader2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import GameCard from '@/components/game/GameCard';
+import type { GameMeta } from '@/types/game';
+import { Target, MousePointerClick, Zap } from 'lucide-react'; // Example icons
 
-export default function HomePage() {
-  const {
-    score,
-    timeLeft,
-    gameStatus,
-    targets,
-    leaderboardScores,
-    countdownValue,
-    startGame,
-    restartGame,
-    handleTargetClick,
-    loadLeaderboard,
-    setGameStatus, // Added to handle navigation from GameOverScreen
-  } = useGameLogic();
+const games: GameMeta[] = [
+  {
+    id: 'target-tap',
+    name: 'Target Tap',
+    description: 'Test your reflexes! Tap the appearing targets as fast as you can before time runs out.',
+    route: '/games/target-tap',
+    icon: Zap,
+    thumbnailUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'abstract target',
+  },
+  {
+    id: 'quick-click',
+    name: 'Quick Click Challenge',
+    description: 'How many times can you click the button in 5 seconds? A simple test of clicking speed!',
+    route: '/games/quick-click',
+    icon: MousePointerClick,
+    thumbnailUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'abstract clicker',
+  },
+  // Add more games here as GameMeta objects
+];
 
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-
-  useEffect(() => {
-    loadLeaderboard();
-  }, [loadLeaderboard, gameStatus]);
-
-  const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
-
-  const handlePlayAgainFromGameOver = () => {
-    // setGameStatus('idle'); // This will show StartScreen briefly, then startGame will trigger countdown
-    startGame(); // Directly start the game sequence
-  };
-  
-  const handleShowLeaderboardFromGameOver = () => {
-    // setGameStatus('idle'); // Or keep game over screen in background?
-    setIsLeaderboardOpen(true);
-  }
-
+export default function GameHubPage() {
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-background to-primary/10">
-      <AnimatePresence>
-        {gameStatus !== 'idle' && gameStatus !== 'countdown' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full contents" // Use contents to not interfere with HUD's fixed positioning
-          >
-            <HUD
-              score={score}
-              timeLeft={timeLeft}
-              onToggleLeaderboard={toggleLeaderboard}
-              onRestart={restartGame}
-              gameStatus={gameStatus}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <main className="flex-grow flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-background to-primary/10">
+      <header className="mb-12 text-center">
+        <h1 className="text-5xl sm:text-6xl font-headline font-bold text-primary mb-4">
+          Game Arcade
+        </h1>
+        <p className="text-lg text-muted-foreground max-w-2xl">
+          Welcome to the Firebase Studio Game Arcade! Choose a game below and test your skills.
+        </p>
+      </header>
 
-      {gameStatus === 'idle' && (
-         <StartScreen onStartGame={startGame} />
-      )}
-
-      {gameStatus === 'countdown' && (
-        <motion.div 
-          key="countdown"
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.5, opacity: 0 }}
-          className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm text-center"
-        >
-          <p className="text-8xl font-bold text-primary animate-ping" style={{animationDuration: '1s'}}>{countdownValue}</p>
-          <p className="text-2xl font-headline mt-4">Get Ready!</p>
-        </motion.div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 w-full max-w-6xl">
+        {games.map((game) => (
+          <GameCard key={game.id} game={game} />
+        ))}
+      </div>
       
-      <AnimatePresence>
-        {gameStatus === 'playing' && (
-          <motion.div
-            key="gameboard"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="w-full flex justify-center mt-20 sm:mt-24" // Add margin for HUD
-          >
-            <ReactionGameBoard targets={targets} onTargetClick={handleTargetClick} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {gameStatus === 'gameOver' && (
-        <GameOverScreen 
-          score={score} 
-          onPlayAgain={handlePlayAgainFromGameOver} 
-          onShowLeaderboard={handleShowLeaderboardFromGameOver}
-        />
-      )}
-      
-      <LeaderboardDialog isOpen={isLeaderboardOpen} onClose={toggleLeaderboard} scores={leaderboardScores} />
+      <footer className="mt-16 text-center text-sm text-muted-foreground">
+        <p>&copy; {new Date().getFullYear()} Firebase Studio. All games are for demonstration purposes.</p>
+      </footer>
     </main>
   );
 }

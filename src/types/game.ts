@@ -1,11 +1,13 @@
 
+import type { LucideIcon } from 'lucide-react';
+
 export interface TargetConfig {
   id: string;
   x: number; // percentage
   y: number; // percentage
   size: number; // pixels
   points: number;
-  color: string; // Added for visual variety
+  color: string;
 }
 
 export interface ScoreEntry {
@@ -15,8 +17,17 @@ export interface ScoreEntry {
   date: string;
 }
 
-// This type can be expanded for game settings if needed
 export interface GameSettings {
   duration: number; // seconds
   targetInterval: number; // ms, how often new targets might appear or change
+}
+
+export interface GameMeta {
+  id: string;
+  name: string;
+  description: string;
+  route: string;
+  icon?: LucideIcon; // Or string for image path
+  thumbnailUrl?: string; // For a preview image on the card
+  dataAiHint?: string; // For placeholder image generation
 }

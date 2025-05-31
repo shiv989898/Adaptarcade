@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from '@vercel/analytics/react'; // If you use Vercel
 
 export const metadata: Metadata = {
-  title: 'Target Tap - Reflex Game',
-  description: 'Test your reflexes in this fast-paced target tapping game!',
+  title: 'Firebase Studio Game Arcade',
+  description: 'A collection of fun mini-games built with Next.js and Firebase Studio!',
 };
 
 export default function RootLayout({
