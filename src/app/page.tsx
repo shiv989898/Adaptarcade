@@ -8,8 +8,8 @@ import { Zap, MousePointerClick, Hammer } from 'lucide-react';
 const games: GameMeta[] = [
   {
     id: 'target-tap',
-    name: 'Target Tap',
-    description: 'Test your reflexes! Tap varied targets as fast as you can. Smaller targets = more points!',
+    name: 'Precision Tap',
+    description: 'Targets grow, points decay! Tap fast & accurately. Choose your challenge.',
     route: '/games/target-tap',
     icon: Zap,
   },
