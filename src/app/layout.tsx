@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { Analytics } from '@vercel/analytics/react'; // If you use Vercel
+import SafeAnalytics from '@/components/core/safe-analytics'; // Updated import
 
 export const metadata: Metadata = {
   title: 'Firebase Studio Game Arcade',
@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen flex flex-col bg-background text-foreground">
         {children}
         <Toaster />
-        <Analytics />
+        <SafeAnalytics /> {/* Use the safe wrapper */}
       </body>
     </html>
   );
