@@ -136,7 +136,7 @@ export default function SpeedTyperPage() {
   };
 
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-cyan-700/10 via-blue-700/10 to-indigo-700/10">
+    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-indigo-600/10 via-purple-700/10 to-purple-800/10">
       <Button asChild variant="outline" className="absolute top-4 left-4 z-30 shadow-md">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade
@@ -250,4 +250,3 @@ export default function SpeedTyperPage() {
     </main>
   );
 }
-
