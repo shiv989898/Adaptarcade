@@ -13,7 +13,7 @@ const games: GameMeta[] = [
     route: '/games/target-tap',
     icon: Zap,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'glowing crosshair targets', // More specific hint
+    dataAiHint: 'sci-fi target reticle', // Updated hint
   },
   {
     id: 'quick-click',
@@ -22,7 +22,7 @@ const games: GameMeta[] = [
     route: '/games/quick-click',
     icon: MousePointerClick,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'glowing mouse cursor', // More specific hint
+    dataAiHint: 'speed clicking mouse', 
   },
   {
     id: 'mole-mash',
@@ -31,7 +31,7 @@ const games: GameMeta[] = [
     route: '/games/mole-mash',
     icon: Hammer,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'cartoon mole whacking', // More specific hint
+    dataAiHint: 'cartoon mole whacking hammer', 
   },
   // Add more games here as GameMeta objects
 ];
