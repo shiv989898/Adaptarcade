@@ -12,8 +12,8 @@ const games: GameMeta[] = [
     description: 'Test your reflexes! Tap varied targets as fast as you can. Smaller targets = more points!',
     route: '/games/target-tap',
     icon: Zap,
-    thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'sci-fi target reticle', // Updated hint
+    thumbnailUrl: 'https://placehold.co/600x400.png?text=Target+Tap+Game',
+    dataAiHint: 'sci-fi target reticle',
   },
   {
     id: 'quick-click',
@@ -21,8 +21,8 @@ const games: GameMeta[] = [
     description: 'How many times can you click the button in 5 seconds? A simple test of clicking speed with a visual timer!',
     route: '/games/quick-click',
     icon: MousePointerClick,
-    thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'speed clicking mouse', 
+    thumbnailUrl: 'https://placehold.co/600x400.png?text=Quick+Click+Fun',
+    dataAiHint: 'speed clicking mouse',
   },
   {
     id: 'mole-mash',
@@ -30,8 +30,8 @@ const games: GameMeta[] = [
     description: 'Whack those pesky moles! Click them as they pop up from their holes before they disappear. Fast reactions win!',
     route: '/games/mole-mash',
     icon: Hammer,
-    thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'cartoon mole whacking hammer', 
+    thumbnailUrl: 'https://placehold.co/600x400.png?text=Whack+A+Mole!',
+    dataAiHint: 'cartoon mole whacking hammer',
   },
   // Add more games here as GameMeta objects
 ];
