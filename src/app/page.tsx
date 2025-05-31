@@ -38,7 +38,7 @@ const games: GameMeta[] = [
 
 export default function GameHubPage() {
   return (
-    <main className="flex-grow flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-background to-primary/10">
+    <main className="flex-grow flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-purple-700/50 via-indigo-600/40 to-pink-500/30">
       <header className="mb-12 text-center">
         <h1 className="text-5xl sm:text-6xl font-headline font-bold text-primary mb-4">
           Adaptarcade

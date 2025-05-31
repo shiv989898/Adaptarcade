@@ -63,7 +63,7 @@ export default function QuickClickPage() {
 
 
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-purple-700/10 via-indigo-600/10 to-purple-800/10">
+    <main className="flex-grow flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-indigo-500/40 via-sky-400/30 to-cyan-400/20">
       <Button asChild variant="outline" className="absolute top-4 left-4 z-30 shadow-md">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade

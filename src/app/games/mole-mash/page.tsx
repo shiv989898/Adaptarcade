@@ -87,7 +87,7 @@ export default function MoleMashPage() {
   ), [selectedDifficulty, handleDifficultyChange]);
 
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-purple-800/20 via-purple-700/10 to-indigo-800/20">
+    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-purple-600/40 via-pink-500/30 to-orange-500/20">
       <Button asChild variant="outline" className="absolute top-4 left-4 z-30 shadow-md">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade
