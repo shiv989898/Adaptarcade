@@ -9,8 +9,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 3 // Increased limit slightly for better feedback in fast games
-const TOAST_REMOVE_DELAY = 5000 // Auto-remove after 5s
+const TOAST_LIMIT = 2; // Reduced limit 
+const TOAST_REMOVE_DELAY = 2500; // Auto-remove faster
 
 type ToasterToast = ToastProps & {
   id: string
@@ -78,10 +78,9 @@ const addToRemoveQueue = (toastId: string, duration?: number) => {
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
-      // If toast has a specific duration, use it for auto-removal
       if (action.toast.duration) {
         addToRemoveQueue(action.toast.id, action.toast.duration);
-      } else if (action.toast.open) { // Only add to queue if it's an auto-closing toast
+      } else if (action.toast.open !== false) { 
         addToRemoveQueue(action.toast.id);
       }
       return {
@@ -99,24 +98,15 @@ export const reducer = (state: State, action: Action): State => {
 
     case "DISMISS_TOAST": {
       const { toastId } = action
-
-      if (toastId) {
-        // Don't auto-remove if a specific toast is dismissed, let its onOpenChange handle it or manual remove
-        // addToRemoveQueue(toastId) 
-      } else {
-        // This case for dismissing all is less common, usually handled by REMOVE_TOAST
-        // state.toasts.forEach((toast) => {
-        //   addToRemoveQueue(toast.id)
-        // })
-      }
-
+      // Dismissing a toast implies we want it to start its closing animation immediately
+      // The onOpenChange handler in toast() will then trigger REMOVE_TOAST after animation
       return {
         ...state,
         toasts: state.toasts.map((t) =>
           t.id === toastId || toastId === undefined
             ? {
                 ...t,
-                open: false, // Trigger the close animation
+                open: false, 
               }
             : t
         ),
@@ -124,10 +114,18 @@ export const reducer = (state: State, action: Action): State => {
     }
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
+        // Clear all timeouts if removing all toasts
+        toastTimeouts.forEach(timeout => clearTimeout(timeout));
+        toastTimeouts.clear();
         return {
           ...state,
           toasts: [],
         }
+      }
+      // Clear specific timeout if it exists
+      if (toastTimeouts.has(action.toastId)) {
+        clearTimeout(toastTimeouts.get(action.toastId));
+        toastTimeouts.delete(action.toastId);
       }
       return {
         ...state,
@@ -167,10 +165,12 @@ function toast({ ...props }: Toast) {
       open: true,
       onOpenChange: (open) => {
         if (!open) {
-          // When toast is closed by user or timeout via Radix, remove it from state
-          setTimeout(() => { // Allow animation to finish
+          // When toast is closed by user or Radix's internal timeout (due to duration prop on ToastPrimitives.Root)
+          // or by our DISMISS_TOAST action, we schedule its removal from the actual state.
+          // This delay allows for the exit animation.
+          setTimeout(() => { 
             dispatch({ type: "REMOVE_TOAST", toastId: id });
-          }, 500); 
+          }, 500); // Should match animation duration or be slightly longer
         }
       },
     },

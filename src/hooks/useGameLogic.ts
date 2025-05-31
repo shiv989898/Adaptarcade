@@ -155,22 +155,20 @@ export const useGameLogic = () => {
     setTargets(prevTargets => [...prevTargets, newTarget]);
 
     const despawnTimeout = setTimeout(() => {
-      // Use a functional update for setTargets to get the latest targets state
       setTargets(currentTargets => {
         const despawningTarget = currentTargets.find(t => t.id === newTargetId);
         if (despawningTarget && gameStatus === 'playing') {
           if (despawningTarget.type === 'precision') {
-              setScore(prev => Math.max(0, prev - Math.round(despawningTarget.points / 10))); // Penalty for missed precision
-              // Defer toast to avoid updating Toaster while TargetTapPage might be rendering
-              setTimeout(() => {
-                toast({ title: `Missed Precision! -${Math.round(despawningTarget.points / 10)}`, variant: 'destructive', duration: 1000 });
+              const penalty = Math.round(despawningTarget.points / 10);
+              setScore(prev => Math.max(0, prev - penalty));
+              setTimeout(() => { // Defer toast call
+                toast({ title: `Missed Precision! -${penalty}`, variant: 'destructive', duration: 1000 });
               }, 0);
           }
           return currentTargets.filter(t => t.id !== newTargetId);
         }
-        return currentTargets; // Return current targets if not despawning this one or game not playing
+        return currentTargets; 
       });
-      // Clear from the refs map after processing
       if (targetDespawnTimeoutRefs.current.has(newTargetId)) {
         targetDespawnTimeoutRefs.current.delete(newTargetId);
       }
@@ -223,26 +221,21 @@ export const useGameLogic = () => {
         clearInterval(countdownTimerRef.current!);
         setGameStatus('playing');
         
-        // Dedicated timer for game duration (1 second interval)
         gameTimerRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
             const newTime = prevTime - 1;
             if (newTime < 0) { 
-              // Game over logic now primarily handled by useEffect watching gameStatus
-              // This timer just ensures timeLeft doesn't go below 0
               return 0; 
             }
             return newTime;
           });
         }, 1000);
 
-        // Dedicated timer for target growth (higher frequency)
         targetGrowthTimerRef.current = setInterval(() => {
           setTargets(prevTs =>
             prevTs.map(t => {
-              if (t.type === 'standard') { // Only standard targets grow
+              if (t.type === 'standard') { 
                 const age = Date.now() - t.spawnTime;
-                // Grow over 90% of despawn time to ensure it reaches max before disappearing
                 const growthRatio = Math.min(1, age / (t.despawnTime * 0.9)); 
                 const newSize = t.initialSize + (t.maxSize - t.initialSize) * growthRatio;
                 return { ...t, currentSize: Math.max(t.initialSize, Math.min(newSize, t.maxSize)) };
@@ -250,7 +243,7 @@ export const useGameLogic = () => {
               return t;
             })
           );
-        }, 1000 / 60); // Approx 60 FPS for growth animation
+        }, 1000 / 60); 
       }
     }, 1000);
   }, [clearAllTimers]);
@@ -281,7 +274,6 @@ export const useGameLogic = () => {
     
     if (gameStatus === 'idle') {
       setTargets([]); 
-      // Ensure timers are cleared if we transition to idle from another state (e.g. restart)
       clearAllTimers();
     }
 
@@ -301,7 +293,7 @@ export const useGameLogic = () => {
     removeTarget(id);
 
     let pointsAwarded = target.points;
-    if (target.type === 'standard') { // Score decay only for standard targets
+    if (target.type === 'standard') { 
       const age = Date.now() - target.spawnTime;
       const ageRatio = Math.min(1, age / target.despawnTime); 
       pointsAwarded = Math.round(target.points * (1 - ageRatio * SCORE_DECAY_FACTOR));
@@ -316,19 +308,15 @@ export const useGameLogic = () => {
       toast({ title: `Decoy Hit! ${pointsAwarded} points!`, variant: 'destructive', duration: 1500 });
     } else if (target.type === 'precision') {
        toast({ title: `Precision! +${pointsAwarded} points!`, duration: 1200 });
-    } else { 
-      toast({ title: `+${pointsAwarded} points!`, duration: 1000 });
-    }
+    } 
+    // No toast for standard hits anymore
   }, [gameStatus, toast, removeTarget, targets]);
 
   const restartGame = useCallback(() => {
-    // clearAllTimers(); // Already called by useEffect when gameStatus changes to 'idle'
     setGameStatus('idle');
-    // Score and timeLeft will be reset when startGame is called from idle.
   }, []);
 
   useEffect(() => {
-    // Global cleanup for all timers when the component unmounts
     return () => {
       clearAllTimers();
     };
