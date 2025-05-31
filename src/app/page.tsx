@@ -3,7 +3,7 @@
 
 import GameCard from '@/components/game/GameCard';
 import type { GameMeta } from '@/types/game';
-import { Zap, MousePointerClick } from 'lucide-react';
+import { Zap, MousePointerClick, Hammer } from 'lucide-react';
 
 const games: GameMeta[] = [
   {
@@ -13,7 +13,7 @@ const games: GameMeta[] = [
     route: '/games/target-tap',
     icon: Zap,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'glowing targets', // Updated hint
+    dataAiHint: 'glowing targets',
   },
   {
     id: 'quick-click',
@@ -22,7 +22,16 @@ const games: GameMeta[] = [
     route: '/games/quick-click',
     icon: MousePointerClick,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'speed clicking', // Updated hint
+    dataAiHint: 'speed clicking',
+  },
+  {
+    id: 'mole-mash',
+    name: 'Mole Mash',
+    description: 'Whack those pesky moles! Click them as they pop up from their holes before they disappear. Fast reactions win!',
+    route: '/games/mole-mash',
+    icon: Hammer, // Example icon
+    thumbnailUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'cartoon mole game',
   },
   // Add more games here as GameMeta objects
 ];

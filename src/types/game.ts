@@ -11,7 +11,7 @@ export interface TargetConfig {
 }
 
 export interface ScoreEntry {
-  id: string;
+  id:string;
   playerName: string;
   score: number;
   date: string;
@@ -30,4 +30,10 @@ export interface GameMeta {
   icon?: LucideIcon; // Or string for image path
   thumbnailUrl?: string; // For a preview image on the card
   dataAiHint?: string; // For placeholder image generation
+}
+
+// For Mole Mash game
+export interface MoleHole {
+  id: number;
+  hasMole: boolean;
 }
