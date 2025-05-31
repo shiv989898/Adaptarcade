@@ -29,7 +29,7 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
         scale: 1, 
         opacity: 1, 
         rotate: 0,
-        width: `${displaySize}px`, // Animate size change
+        width: `${displaySize}px`, 
         height: `${displaySize}px`,
       }}
       exit={{ scale: 0, opacity: 0, transition: { duration: 0.15 } }}
@@ -37,13 +37,13 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
       transition={{ type: 'spring', stiffness: 450, damping: 18 }}
       style={{
         position: 'absolute',
-        left: `${target.x}%`,
-        top: `${target.y}%`,
-        // width and height are now handled by animate prop
+        // Calculate top-left based on center (target.x, target.y) and current size
+        left: `calc(${target.x}% - ${displaySize / 2}px)`,
+        top: `calc(${target.y}% - ${displaySize / 2}px)`,
         backgroundColor: target.color,
         borderRadius: target.type === 'precision' ? '8px' : '50%',
         cursor: 'pointer',
-        boxShadow: `0px 0px ${displaySize / 5}px ${target.color}99, 0 0 4px rgba(0,0,0,0.2)`, // Dynamic shadow
+        boxShadow: `0px 0px ${displaySize / 5}px ${target.color}99, 0 0 4px rgba(0,0,0,0.2)`,
       }}
       className={cn(targetBaseClasses, targetTypeClasses[target.type])}
       onClick={() => onClick(target.id)}
