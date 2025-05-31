@@ -75,13 +75,9 @@ export const useGameLogic = () => {
   const currentTargetIdRef = useRef<string | null>(null);
   const playerNameRef = useRef<string>('ReflexChampion');
 
-  const loadLeaderboard = useCallback(() => {
-    setLeaderboardScores(getLeaderboard());
-  }, []);
-
-  useEffect(() => {
-    loadLeaderboard();
-  }, [loadLeaderboard]);
+  // Refs for mutually recursive functions to ensure stable identities
+  const generateTargetFnRef = useRef<() => void>();
+  const scheduleNextTargetFnRef = useRef<() => void>();
 
   const clearAllTimers = useCallback(() => {
     if (gameTimerRef.current) clearInterval(gameTimerRef.current);
@@ -89,27 +85,14 @@ export const useGameLogic = () => {
     if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
   }, []);
 
-  const scheduleNextTarget = useCallback(() => {
-    if (gameStatus !== 'playing') return;
-
-    if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
-    
-    const { minSpawnDelay, maxSpawnDelay } = DIFFICULTY_CONFIG[currentDifficulty];
-    const spawnDelay = Math.random() * (maxSpawnDelay - minSpawnDelay) + minSpawnDelay;
-
-    targetSpawnTimeoutRef.current = setTimeout(() => {
-      generateTarget();
-    }, spawnDelay);
-  }, [gameStatus, currentDifficulty]); // generateTarget will be memoized separately
-
   const generateTarget = useCallback(() => {
     if (gameStatus !== 'playing') return;
 
     const newTargetId = `target-${Date.now()}-${Math.random()}`;
     currentTargetIdRef.current = newTargetId;
     
-    const { targetTiers, targetDespawnTime } = DIFFICULTY_CONFIG[currentDifficulty];
-    const tierParams = targetTiers[Math.floor(Math.random() * targetTiers.length)];
+    const config = DIFFICULTY_CONFIG[currentDifficulty];
+    const tierParams = config.targetTiers[Math.floor(Math.random() * config.targetTiers.length)];
 
     const newTarget: TargetConfig = {
       id: newTargetId,
@@ -121,14 +104,48 @@ export const useGameLogic = () => {
 
     if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
     targetDespawnTimeoutRef.current = setTimeout(() => {
-      if (currentTargetIdRef.current === newTargetId && gameStatus === 'playing') { // Check if target still exists and game running
-        setTargets([]); // Remove target if it timed out
+      if (currentTargetIdRef.current === newTargetId && gameStatus === 'playing') {
+        setTargets([]); 
         currentTargetIdRef.current = null;
-        scheduleNextTarget(); // Spawn next one
+        if (scheduleNextTargetFnRef.current) {
+          scheduleNextTargetFnRef.current();
+        }
       }
-    }, targetDespawnTime);
-  }, [gameStatus, currentDifficulty, scheduleNextTarget]);
+    }, config.targetDespawnTime);
+  }, [gameStatus, currentDifficulty]);
 
+  const scheduleNextTarget = useCallback(() => {
+    if (gameStatus !== 'playing') return;
+
+    if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
+    
+    const config = DIFFICULTY_CONFIG[currentDifficulty];
+    const spawnDelay = Math.random() * (config.maxSpawnDelay - config.minSpawnDelay) + config.minSpawnDelay;
+
+    targetSpawnTimeoutRef.current = setTimeout(() => {
+      if (generateTargetFnRef.current) {
+        generateTargetFnRef.current();
+      }
+    }, spawnDelay);
+  }, [gameStatus, currentDifficulty]);
+
+  // Update refs with the latest function definitions
+  useEffect(() => {
+    generateTargetFnRef.current = generateTarget;
+  }, [generateTarget]);
+
+  useEffect(() => {
+    scheduleNextTargetFnRef.current = scheduleNextTarget;
+  }, [scheduleNextTarget]);
+
+
+  const loadLeaderboard = useCallback(() => {
+    setLeaderboardScores(getLeaderboard());
+  }, []);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [loadLeaderboard]);
 
   const startGame = useCallback((difficulty: Difficulty) => {
     setCurrentDifficulty(difficulty);
@@ -136,20 +153,19 @@ export const useGameLogic = () => {
     setScore(0);
     setTimeLeft(GAME_DURATION);
     setCountdownValue(COUNTDOWN_SECONDS);
-    setGameStatus('countdown');
     setTargets([]); 
     currentTargetIdRef.current = null;
+    setGameStatus('countdown'); // Set to countdown first
 
     let currentCountdown = COUNTDOWN_SECONDS;
-    gameTimerRef.current = setInterval(() => {
+    const countdownTimer = setInterval(() => {
       currentCountdown--;
       setCountdownValue(currentCountdown);
       if (currentCountdown === 0) {
-        clearInterval(gameTimerRef.current!);
-        setGameStatus('playing');
-        scheduleNextTarget(); 
+        clearInterval(countdownTimer);
+        setGameStatus('playing'); // This will trigger the useEffect below to start spawning
         
-        gameTimerRef.current = setInterval(() => {
+        const mainGameTimer = setInterval(() => {
           setTimeLeft(prevTime => {
             if (prevTime <= 1) {
               clearAllTimers();
@@ -163,9 +179,30 @@ export const useGameLogic = () => {
             return prevTime - 1;
           });
         }, 1000);
+        gameTimerRef.current = mainGameTimer;
       }
     }, 1000);
-  }, [clearAllTimers, loadLeaderboard, scheduleNextTarget]); // Removed score, currentDifficulty from here, managed by state
+    gameTimerRef.current = countdownTimer;
+  }, [clearAllTimers, score, currentDifficulty, loadLeaderboard]);
+
+
+  // Effect to start/stop target spawning based on gameStatus
+  useEffect(() => {
+    if (gameStatus === 'playing') {
+      if (scheduleNextTargetFnRef.current) {
+        scheduleNextTargetFnRef.current();
+      }
+    } else {
+      // If game is not playing, clear any pending spawn or despawn timeouts
+      if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
+      if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
+       // If game ends or restarts, ensure no targets are left on screen
+      if (gameStatus === 'gameOver' || gameStatus === 'idle') {
+        setTargets([]);
+        currentTargetIdRef.current = null;
+      }
+    }
+  }, [gameStatus]);
 
   const handleTargetClick = useCallback((id: string, points: number) => {
     if (gameStatus !== 'playing' || currentTargetIdRef.current !== id) return;
@@ -182,17 +219,22 @@ export const useGameLogic = () => {
       duration: 1200,
     });
 
-    scheduleNextTarget();
-  }, [gameStatus, toast, scheduleNextTarget]);
+    if (scheduleNextTargetFnRef.current) {
+      scheduleNextTargetFnRef.current();
+    }
+  }, [gameStatus, toast]);
 
   const restartGame = useCallback(() => {
     clearAllTimers();
     setGameStatus('idle');
     setTargets([]);
     currentTargetIdRef.current = null;
+    setScore(0); 
+    setTimeLeft(GAME_DURATION);
   }, [clearAllTimers]);
 
   useEffect(() => {
+    // Cleanup timers when the component unmounts
     return () => {
       clearAllTimers();
     };
@@ -205,7 +247,7 @@ export const useGameLogic = () => {
     targets,
     leaderboardScores,
     countdownValue,
-    currentDifficulty, // Expose current difficulty if needed by UI
+    currentDifficulty,
     startGame,
     restartGame,
     handleTargetClick,
