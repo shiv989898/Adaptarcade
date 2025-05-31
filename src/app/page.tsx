@@ -49,7 +49,7 @@ export default function GameHubPage() {
       </div>
       
       <footer className="mt-16 text-center text-sm text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} Firebase Studio. All games are for demonstration purposes.</p>
+        <p>&copy; 2025 Firebase Studio. All games are for demonstration purposes.</p>
       </footer>
     </main>
   );

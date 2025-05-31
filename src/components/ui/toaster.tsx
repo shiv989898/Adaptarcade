@@ -14,6 +14,11 @@ import {
 export function Toaster() {
   const { toasts } = useToast()
 
+  // Return null to prevent visual rendering of toasts
+  return null;
+
+  // Original code commented out:
+  /*
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
@@ -33,4 +38,5 @@ export function Toaster() {
       <ToastViewport />
     </ToastProvider>
   )
+  */
 }
