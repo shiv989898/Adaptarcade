@@ -4,14 +4,16 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress'; // Import Progress
+import { Progress } from '@/components/ui/progress';
 import { useQuickClickLogic, type QuickClickScoreEntry } from '@/hooks/useQuickClickLogic';
 import Link from 'next/link';
-import { ArrowLeft, MousePointerClick, Play, RotateCcw, Trophy, Star, Award, Zap } from 'lucide-react';
+import { ArrowLeft, MousePointerClick, Play, RotateCcw, Trophy, Star, Award, Zap, Timer } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
+import StartScreen from '@/components/game/StartScreen'; // Import StartScreen
+import GameOverScreen from '@/components/game/GameOverScreen'; // Import GameOverScreen
 
-const QUICK_CLICK_GAME_TOTAL_DURATION = 5; // Match with hook
+const QUICK_CLICK_GAME_TOTAL_DURATION = 5; 
 
 export default function QuickClickPage() {
   const {
@@ -35,42 +37,81 @@ export default function QuickClickPage() {
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const formatTime = (seconds: number) => {
-    return seconds.toFixed(1); // Show tenths of a second if desired, or just seconds
+    return seconds.toFixed(1); 
   };
 
   const timeProgress = (timeLeft / QUICK_CLICK_GAME_TOTAL_DURATION) * 100;
 
+  const gameTitle = "Quick Click";
+  const gameDescription = `Click the button as many times as you can in ${QUICK_CLICK_GAME_TOTAL_DURATION} seconds!`;
+  const gameInstructions = {
+    title: "How to Click:",
+    steps: [
+      "Repeatedly click or tap the large button.",
+      "Each click scores 1 point.",
+      "Aim for the highest score in 5 seconds!"
+    ]
+  };
+  
+  const handlePlayAgainFromGameOver = () => {
+    startGame();
+  };
+  
+  const handleShowLeaderboardFromGameOver = () => {
+    setIsLeaderboardOpen(true);
+  };
+
+
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-background to-secondary/20">
-      <Button asChild variant="outline" className="absolute top-4 left-4 z-30">
+    <main className="flex-grow flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-sky-500/10 via-indigo-500/10 to-purple-500/10">
+      <Button asChild variant="outline" className="absolute top-4 left-4 z-30 shadow-md">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade
         </Link>
       </Button>
+      
+      <AnimatePresence>
+        {gameStatus !== 'idle' && gameStatus !== 'countdown' && gameStatus !== 'gameOver' && (
+          <motion.div
+            key="hud-qc"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 w-auto max-w-[calc(100%-2rem)] z-10"
+          >
+             <Card className="bg-card/80 backdrop-blur-sm shadow-xl">
+              <CardContent className="p-3 flex items-center justify-center gap-4 sm:gap-6">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground font-headline flex items-center gap-1 justify-center"><Star className="h-3 w-3" />CLICKS</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-primary">{score}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground font-headline flex items-center gap-1 justify-center"><Timer className="h-3 w-3" />TIME</p>
+                  <p className={`text-2xl sm:text-3xl font-bold ${timeLeft <= 1.5 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
+                    {formatTime(timeLeft)}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={toggleLeaderboard} aria-label="Show Leaderboard" className="text-foreground/80 hover:text-foreground">
+                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Button>
+                 <Button variant="ghost" size="icon" onClick={restartGame} aria-label="Restart Game" className="text-foreground/80 hover:text-foreground" disabled={gameStatus === 'countdown'}>
+                  <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {gameStatus === 'idle' && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <Card className="shadow-2xl bg-card/90 backdrop-blur-sm">
-            <CardHeader className="text-center">
-              <div className="inline-flex items-center justify-center mb-4">
-                <MousePointerClick className="h-16 w-16 text-primary animate-pulse" />
-              </div>
-              <CardTitle className="text-5xl font-headline text-primary">Quick Click</CardTitle>
-              <CardDescription className="text-lg text-muted-foreground pt-2">
-                Click the button as many times as you can in {QUICK_CLICK_GAME_TOTAL_DURATION} seconds!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-6">
-              <Button onClick={startGame} size="lg" className="w-full text-xl py-8 shadow-lg hover:shadow-primary/50 transition-all duration-150 hover:scale-105">
-                <Play className="mr-3 h-7 w-7" /> Start Challenge
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <StartScreen 
+            onStartGame={startGame} 
+            title={gameTitle} 
+            description={gameDescription}
+            instructions={gameInstructions}
+            icon={MousePointerClick}
+          />
       )}
 
       {gameStatus === 'countdown' && (
@@ -93,78 +134,42 @@ export default function QuickClickPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center gap-8 w-full max-w-lg"
+            className="flex flex-col items-center gap-6 w-full max-w-lg mt-20 sm:mt-24" // Adjusted margin for HUD
           >
-            <Card className="w-full bg-card/80 backdrop-blur-sm shadow-xl">
-              <CardContent className="p-6 flex flex-col gap-4 items-center justify-around text-center">
-                <div className="flex items-baseline justify-center gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Star className="h-4 w-4" />CLICKS</p>
-                    <p className="text-5xl font-bold text-primary">{score}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Zap className="h-4 w-4" />TIME LEFT</p>
-                    <p className={`text-5xl font-bold ${timeLeft <= 2 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
-                      {formatTime(timeLeft)}
-                    </p>
-                  </div>
-                </div>
-                <Progress value={timeProgress} className="w-full h-3 [&>div]:bg-accent" />
-              </CardContent>
-            </Card>
+            <Progress value={timeProgress} className="w-full h-4 [&>div]:bg-accent shadow-md" />
             
-            <motion.div whileTap={{ scale: 0.97 }} className="w-full">
+            <motion.div 
+              whileTap={{ scale: 0.95, transition: { duration: 0.05 } }} 
+              className="w-full"
+            >
               <Button 
                 onClick={handleGameButtonClick} 
-                className="w-full h-48 text-3xl font-bold shadow-2xl hover:scale-105 active:scale-95 transform transition-transform duration-100 ease-out bg-primary hover:bg-primary/90 active:bg-primary/80"
+                className="w-full h-56 sm:h-64 text-3xl sm:text-4xl font-bold shadow-2xl hover:scale-[1.02] active:scale-[0.98] transform transition-transform duration-100 ease-out bg-gradient-to-br from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 active:from-primary/80 active:to-purple-600/80 rounded-2xl"
                 style={{ WebkitTapHighlightColor: 'transparent' }} 
               >
                 CLICK ME!
               </Button>
             </motion.div>
-             <p className="text-muted-foreground text-center">Keep clicking until the time runs out!</p>
+             <p className="text-muted-foreground text-center text-sm sm:text-base">Keep clicking until the time runs out!</p>
           </motion.div>
         )}
       </AnimatePresence>
 
       {gameStatus === 'gameOver' && (
-        <motion.div
-          key="gameover-qc"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20 p-4"
-        >
-          <Card className="w-full max-w-md shadow-2xl bg-card text-card-foreground">
-            <CardHeader className="text-center">
-              <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-primary/20 mb-4">
-                <Award className="h-12 w-12 text-primary" />
-              </div>
-              <CardTitle className="text-4xl font-headline text-primary">Challenge Over!</CardTitle>
-              <CardDescription className="text-lg text-muted-foreground pt-2">
-                You clicked
-              </CardDescription>
-              <p className="text-5xl font-bold text-accent py-2">{score} times!</p>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              <Button onClick={restartGame} size="lg" className="w-full shadow-lg hover:shadow-primary/50">
-                <RotateCcw className="mr-2 h-5 w-5" /> Play Again
-              </Button>
-              <Button onClick={toggleLeaderboard} variant="outline" size="lg" className="w-full">
-                <Trophy className="mr-2 h-5 w-5" /> View Leaderboard
-              </Button>
-            </CardContent>
-            <CardFooter className="pt-6">
-              <p className="text-xs text-muted-foreground text-center w-full">Amazing clicking speed!</p>
-            </CardFooter>
-          </Card>
-        </motion.div>
+         <GameOverScreen 
+          score={score} 
+          onPlayAgain={handlePlayAgainFromGameOver} 
+          onShowLeaderboard={handleShowLeaderboardFromGameOver}
+          gameName={gameTitle}
+          additionalInfo={`You clicked ${score} times!`}
+        />
       )}
       
       <LeaderboardDialog 
         isOpen={isLeaderboardOpen} 
         onClose={toggleLeaderboard} 
         scores={leaderboardScores as QuickClickScoreEntry[]}
-        gameName="Quick Click Challenge"
+        gameName={gameTitle}
       />
     </main>
   );

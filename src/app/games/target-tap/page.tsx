@@ -11,17 +11,7 @@ import { useGameLogic } from '@/hooks/useGameLogic';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Metadata } from 'next';
-import { ArrowLeft } from 'lucide-react';
-
-// It's not possible to export metadata from a client component.
-// If you need dynamic metadata, consider moving this to a layout.tsx for this route,
-// or fetch metadata in a server component if possible.
-// For now, this static approach won't work as expected in a client component.
-// export const metadata: Metadata = {
-//   title: 'Target Tap - Reflex Game',
-//   description: 'Test your reflexes in this fast-paced target tapping game!',
-// };
+import { ArrowLeft, Zap } from 'lucide-react'; // Added Zap for StartScreen
 
 export default function TargetTapPage() {
   const {
@@ -32,7 +22,7 @@ export default function TargetTapPage() {
     leaderboardScores,
     countdownValue,
     startGame,
-    restartGame, // Use this for HUD restart
+    restartGame, 
     handleTargetClick,
     loadLeaderboard,
   } = useGameLogic();
@@ -46,7 +36,6 @@ export default function TargetTapPage() {
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const handlePlayAgainFromGameOver = () => {
-    // startGame will handle the countdown and transition to playing
     startGame();
   };
   
@@ -54,9 +43,20 @@ export default function TargetTapPage() {
     setIsLeaderboardOpen(true);
   };
 
+  const gameTitle = "Target Tap";
+  const gameDescription = "Tap the appearing targets as fast as you can! Different targets give different points.";
+  const gameInstructions = {
+    title: "How to Tap:",
+    steps: [
+      "Click or tap colored targets that appear.",
+      "Smaller, accent-colored targets are worth more.",
+      "Score as high as you can before time runs out!"
+    ]
+  };
+
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-background to-primary/10">
-      <Button asChild variant="outline" className="absolute top-4 left-4 z-30">
+    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-indigo-700/10 via-purple-700/10 to-pink-700/10">
+      <Button asChild variant="outline" className="absolute top-4 left-4 z-30 shadow-md">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade
         </Link>
@@ -65,16 +65,17 @@ export default function TargetTapPage() {
       <AnimatePresence>
         {gameStatus !== 'idle' && gameStatus !== 'countdown' && gameStatus !== 'gameOver' && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            key="hud-tt"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             className="w-full contents"
           >
             <HUD
               score={score}
               timeLeft={timeLeft}
               onToggleLeaderboard={toggleLeaderboard}
-              onRestart={restartGame} // This will reset to idle, then StartScreen appears
+              onRestart={restartGame}
               gameStatus={gameStatus}
             />
           </motion.div>
@@ -82,30 +83,36 @@ export default function TargetTapPage() {
       </AnimatePresence>
 
       {gameStatus === 'idle' && (
-         <StartScreen onStartGame={startGame} title="Target Tap" description="Tap the appearing targets as fast as you can! Different targets give different points." />
+         <StartScreen 
+            onStartGame={startGame} 
+            title={gameTitle} 
+            description={gameDescription}
+            instructions={gameInstructions}
+            icon={Zap} // Pass the Zap icon
+          />
       )}
 
       {gameStatus === 'countdown' && (
         <motion.div 
-          key="countdown"
+          key="countdown-tt"
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.5, opacity: 0 }}
           className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm text-center"
         >
           <p className="text-8xl font-bold text-primary animate-ping" style={{animationDuration: '1s'}}>{countdownValue}</p>
-          <p className="text-2xl font-headline mt-4">Get Ready!</p>
+          <p className="text-2xl font-headline mt-4">Get Ready to Tap!</p>
         </motion.div>
       )}
       
       <AnimatePresence>
         {gameStatus === 'playing' && (
           <motion.div
-            key="gameboard"
+            key="gameboard-tt"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full flex justify-center mt-20 sm:mt-24" 
+            className="w-full flex justify-center mt-16 sm:mt-20" // Adjusted margin for HUD
           >
             <ReactionGameBoard targets={targets} onTargetClick={handleTargetClick} />
           </motion.div>
@@ -117,6 +124,7 @@ export default function TargetTapPage() {
           score={score} 
           onPlayAgain={handlePlayAgainFromGameOver} 
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
+          gameName={gameTitle}
         />
       )}
       
@@ -124,7 +132,7 @@ export default function TargetTapPage() {
         isOpen={isLeaderboardOpen} 
         onClose={toggleLeaderboard} 
         scores={leaderboardScores}
-        gameName="Target Tap"
+        gameName={gameTitle}
       />
     </main>
   );

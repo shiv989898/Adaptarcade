@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Hammer, Trophy } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react'; // Removed Hammer, Trophy as they are in other components
 import { AnimatePresence, motion } from 'framer-motion';
 import HUD from '@/components/game/HUD';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
@@ -13,6 +13,7 @@ import GameOverScreen from '@/components/game/GameOverScreen';
 import Mole from '@/components/game/Mole';
 import { useMoleMashLogic, type MoleMashGameStatus } from '@/hooks/useMoleMashLogic';
 import type { ScoreEntry } from '@/types/game';
+import { Hammer } from 'lucide-react'; // Icon for StartScreen
 
 export default function MoleMashPage() {
   const {
@@ -38,7 +39,7 @@ export default function MoleMashPage() {
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const handlePlayAgainFromGameOver = () => {
-    startGame(); // This will handle the countdown and transition
+    startGame(); 
   };
   
   const handleShowLeaderboardFromGameOver = () => {
@@ -57,8 +58,8 @@ export default function MoleMashPage() {
   };
 
   return (
-    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-background to-yellow-700/20">
-      <Button asChild variant="outline" className="absolute top-4 left-4 z-30">
+    <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-green-800/20 to-yellow-700/20">
+      <Button asChild variant="outline" className="absolute top-4 left-4 z-30 shadow-md">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade
         </Link>
@@ -67,17 +68,18 @@ export default function MoleMashPage() {
       <AnimatePresence>
         {gameStatus !== 'idle' && gameStatus !== 'countdown' && gameStatus !== 'gameOver' && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full contents" // Ensure HUD is positioned correctly by its own fixed styles
+            key="hud-mm"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full contents" 
           >
             <HUD
               score={score}
               timeLeft={timeLeft}
               onToggleLeaderboard={toggleLeaderboard}
               onRestart={restartGame} 
-              gameStatus={gameStatus as any} // Cast for HUD compatibility
+              gameStatus={gameStatus as any}
             />
           </motion.div>
         )}
@@ -89,6 +91,7 @@ export default function MoleMashPage() {
             title={gameTitle} 
             description={gameDescription}
             instructions={gameInstructions}
+            icon={Hammer}
           />
       )}
 
@@ -112,14 +115,16 @@ export default function MoleMashPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center justify-center w-full mt-20 sm:mt-24"
+            className="flex flex-col items-center justify-center w-full mt-16 sm:mt-20" // Adjusted margin for HUD
           >
             <div 
-              className="grid gap-2 sm:gap-4 p-2 sm:p-4 bg-green-700/30 border-4 border-green-800/50 rounded-lg shadow-xl"
+              className="grid gap-2 sm:gap-3 p-3 sm:p-4 bg-lime-200/70 dark:bg-yellow-900/50 border-4 border-yellow-700/80 dark:border-yellow-600/70 rounded-xl shadow-xl"
               style={{
                 gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                width: `calc(${gridSize} * 6rem + (${gridSize-1} * 0.5rem) + 2rem)`, // Approx based on Mole size + gap + padding
-                maxWidth: '90vw', // Ensure it doesn't overflow on small screens
+                // Mole width is 5rem (w-20) or 6rem (w-24) + gap + padding.
+                // Assuming sm:w-24 (6rem) and sm:gap-3 (0.75rem), p-4 (1rem each side = 2rem)
+                width: `calc(${gridSize} * 6rem + (${gridSize-1} * 0.75rem) + 2rem)`, 
+                maxWidth: '90vw',
               }}
             >
               {moles.map((mole, index) => (
@@ -130,7 +135,7 @@ export default function MoleMashPage() {
                 />
               ))}
             </div>
-            <p className="text-muted-foreground text-center mt-4">Mash those moles!</p>
+            <p className="text-muted-foreground text-center mt-4 font-semibold">Mash those moles!</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -140,13 +145,14 @@ export default function MoleMashPage() {
           score={score} 
           onPlayAgain={handlePlayAgainFromGameOver} 
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
+          gameName={gameTitle}
         />
       )}
       
       <LeaderboardDialog 
         isOpen={isLeaderboardOpen} 
         onClose={toggleLeaderboard} 
-        scores={leaderboardScores as ScoreEntry[]} // Cast for LeaderboardDialog compatibility
+        scores={leaderboardScores as ScoreEntry[]} 
         gameName={gameTitle}
       />
     </main>
