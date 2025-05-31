@@ -28,9 +28,7 @@ export interface GameMeta {
   name: string;
   description: string;
   route: string;
-  icon?: LucideIcon; // Or string for image path
-  // thumbnailUrl?: string; // Removed
-  // dataAiHint?: string; // Removed
+  icon?: LucideIcon; 
 }
 
 // For Mole Mash game
@@ -41,3 +39,22 @@ export interface MoleHole {
 
 // Difficulty level type
 export type Difficulty = 'easy' | 'medium' | 'hard';
+
+// For Flappy Bird game
+export interface BirdState {
+  y: number; // Vertical position
+  velocity: number;
+  size: number; // Bird's visual size
+}
+
+export interface PipeState {
+  id: string;
+  x: number; // Horizontal position
+  topHeight: number; // Height of the top pipe
+  gap: number; // Gap between top and bottom pipe
+  width: number;
+}
+
+export type FlappyBirdGameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
+
+export const FLAPPY_BIRD_LEADERBOARD_KEY = 'flappyBirdLeaderboard';

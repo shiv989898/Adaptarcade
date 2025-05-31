@@ -3,7 +3,7 @@
 
 import GameCard from '@/components/game/GameCard';
 import type { GameMeta } from '@/types/game';
-import { Zap, MousePointerClick, Hammer } from 'lucide-react';
+import { Zap, MousePointerClick, Hammer, Bird } from 'lucide-react';
 
 const games: GameMeta[] = [
   {
@@ -12,7 +12,6 @@ const games: GameMeta[] = [
     description: 'Test your reflexes! Tap varied targets as fast as you can. Smaller targets = more points!',
     route: '/games/target-tap',
     icon: Zap,
-    // thumbnailUrl and dataAiHint removed
   },
   {
     id: 'quick-click',
@@ -20,7 +19,6 @@ const games: GameMeta[] = [
     description: 'How many times can you click the button in 5 seconds? A simple test of clicking speed with a visual timer!',
     route: '/games/quick-click',
     icon: MousePointerClick,
-    // thumbnailUrl and dataAiHint removed
   },
   {
     id: 'mole-mash',
@@ -28,7 +26,13 @@ const games: GameMeta[] = [
     description: 'Whack those pesky moles! Click them as they pop up from their holes before they disappear. Fast reactions win!',
     route: '/games/mole-mash',
     icon: Hammer,
-    // thumbnailUrl and dataAiHint removed
+  },
+  {
+    id: 'flappy-bird',
+    name: 'Flappy Bird',
+    description: 'Navigate the bird through pipes. Tap to flap! A test of timing and perseverance.',
+    route: '/games/flappy-bird',
+    icon: Bird,
   },
   // Add more games here as GameMeta objects
 ];
