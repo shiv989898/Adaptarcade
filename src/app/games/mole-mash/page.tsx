@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, Hammer } from 'lucide-react';
@@ -25,7 +25,7 @@ export default function MoleMashPage() {
     leaderboardScores,
     moles,
     gridSize,
-    currentDifficulty,
+    currentDifficulty, // This is from the hook, reflects difficulty *during* the game
     startGame,
     restartGame,
     handleMoleClick,
@@ -33,7 +33,7 @@ export default function MoleMashPage() {
   } = useMoleMashLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium'); // This is for the UI selector
 
   useEffect(() => {
     loadLeaderboard();
@@ -42,13 +42,13 @@ export default function MoleMashPage() {
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const handleStartGameWithDifficulty = () => {
-    startGame(selectedDifficulty); 
+    startGame(selectedDifficulty);
   };
-  
+
   const handlePlayAgainFromGameOver = () => {
-    restartGame(); 
+    restartGame();
   };
-  
+
   const handleShowLeaderboardFromGameOver = () => {
     setIsLeaderboardOpen(true);
   };
@@ -65,10 +65,14 @@ export default function MoleMashPage() {
     ]
   };
 
-  const difficultySelectorUI = (
-    <RadioGroup 
-      value={selectedDifficulty} 
-      onValueChange={(value) => setSelectedDifficulty(value as Difficulty)}
+  const handleDifficultyChange = useCallback((value: string) => {
+    setSelectedDifficulty(value as Difficulty);
+  }, []); // setSelectedDifficulty is stable
+
+  const difficultySelectorUI = useCallback((
+    <RadioGroup
+      value={selectedDifficulty}
+      onValueChange={handleDifficultyChange}
       className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 py-2"
     >
       {(['easy', 'medium', 'hard'] as Difficulty[]).map(diff => (
@@ -80,7 +84,7 @@ export default function MoleMashPage() {
         </div>
       ))}
     </RadioGroup>
-  );
+  ), [selectedDifficulty, handleDifficultyChange]);
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-green-800/20 to-yellow-700/20">
@@ -97,13 +101,13 @@ export default function MoleMashPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full contents" 
+            className="w-full contents"
           >
             <HUD
               score={score}
               timeLeft={timeLeft}
               onToggleLeaderboard={toggleLeaderboard}
-              onRestart={restartGame} 
+              onRestart={restartGame}
               gameStatus={gameStatus}
             />
           </motion.div>
@@ -111,9 +115,9 @@ export default function MoleMashPage() {
       </AnimatePresence>
 
       {gameStatus === 'idle' && (
-         <StartScreen 
-            onStartGame={handleStartGameWithDifficulty} 
-            title={gameTitle} 
+         <StartScreen
+            onStartGame={handleStartGameWithDifficulty}
+            title={gameTitle}
             description={gameDescription}
             instructions={gameInstructions}
             icon={Hammer}
@@ -122,7 +126,7 @@ export default function MoleMashPage() {
       )}
 
       {gameStatus === 'countdown' && (
-        <motion.div 
+        <motion.div
           key="countdown-mm"
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -133,7 +137,7 @@ export default function MoleMashPage() {
           <p className="text-2xl font-headline mt-4">Get Ready to Mash ({selectedDifficulty})!</p>
         </motion.div>
       )}
-      
+
       <AnimatePresence>
         {gameStatus === 'playing' && (
           <motion.div
@@ -141,13 +145,13 @@ export default function MoleMashPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center justify-center w-full mt-16 sm:mt-20" 
+            className="flex flex-col items-center justify-center w-full mt-16 sm:mt-20"
           >
-            <div 
+            <div
               className="grid gap-2 sm:gap-3 p-3 sm:p-4 bg-lime-200/70 dark:bg-yellow-900/50 border-4 border-yellow-700/80 dark:border-yellow-600/70 rounded-xl shadow-xl"
               style={{
                 gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                width: `calc(${gridSize} * 6rem + (${gridSize-1} * 0.75rem) + 2rem)`, 
+                width: `calc(${gridSize} * 6rem + (${gridSize-1} * 0.75rem) + 2rem)`,
                 maxWidth: '90vw',
               }}
             >
@@ -165,19 +169,19 @@ export default function MoleMashPage() {
       </AnimatePresence>
 
       {gameStatus === 'gameOver' && (
-        <GameOverScreen 
-          score={score} 
-          onPlayAgain={handlePlayAgainFromGameOver} 
+        <GameOverScreen
+          score={score}
+          onPlayAgain={handlePlayAgainFromGameOver}
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
           gameName={`${gameTitle} (${currentDifficulty})`}
         />
       )}
-      
-      <LeaderboardDialog 
-        isOpen={isLeaderboardOpen} 
-        onClose={toggleLeaderboard} 
-        scores={leaderboardScores as ScoreEntry[]} 
-        gameName={gameTitle} 
+
+      <LeaderboardDialog
+        isOpen={isLeaderboardOpen}
+        onClose={toggleLeaderboard}
+        scores={leaderboardScores as ScoreEntry[]}
+        gameName={gameTitle}
       />
     </main>
   );

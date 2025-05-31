@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import HUD from '@/components/game/HUD';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
 import StartScreen from '@/components/game/StartScreen';
@@ -11,10 +11,10 @@ import { useGameLogic } from '@/hooks/useGameLogic';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Zap, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Zap } from 'lucide-react'; // Removed ChevronRight as it's not used
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import type { Difficulty } from '@/types/game';
+import type { Difficulty, ScoreEntry } from '@/types/game'; // Added ScoreEntry
 
 export default function TargetTapPage() {
   const {
@@ -24,14 +24,15 @@ export default function TargetTapPage() {
     targets,
     leaderboardScores,
     countdownValue,
+    currentDifficulty, // This is from the hook, reflects difficulty *during* the game
     startGame,
-    restartGame, 
+    restartGame,
     handleTargetClick,
     loadLeaderboard,
   } = useGameLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium'); // This is for the UI selector
 
   useEffect(() => {
     loadLeaderboard();
@@ -44,12 +45,9 @@ export default function TargetTapPage() {
   };
 
   const handlePlayAgainFromGameOver = () => {
-    // Restarting should ideally bring back to start screen with difficulty selection
-    // For now, it will use the last selected difficulty or default
-    // A better UX might be to set gameStatus to 'idle' which shows StartScreen
-    restartGame(); // This sets status to idle, StartScreen will pick up next start
+    restartGame();
   };
-  
+
   const handleShowLeaderboardFromGameOver = () => {
     setIsLeaderboardOpen(true);
   };
@@ -66,10 +64,14 @@ export default function TargetTapPage() {
     ]
   };
 
-  const difficultySelectorUI = (
-    <RadioGroup 
-      value={selectedDifficulty} 
-      onValueChange={(value) => setSelectedDifficulty(value as Difficulty)}
+  const handleDifficultyChange = useCallback((value: string) => {
+    setSelectedDifficulty(value as Difficulty);
+  }, []); // setSelectedDifficulty is stable
+
+  const difficultySelectorUI = useCallback((
+    <RadioGroup
+      value={selectedDifficulty}
+      onValueChange={handleDifficultyChange}
       className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 py-2"
     >
       {(['easy', 'medium', 'hard'] as Difficulty[]).map(diff => (
@@ -81,7 +83,7 @@ export default function TargetTapPage() {
         </div>
       ))}
     </RadioGroup>
-  );
+  ), [selectedDifficulty, handleDifficultyChange]);
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-indigo-700/10 via-purple-700/10 to-pink-700/10">
@@ -112,9 +114,9 @@ export default function TargetTapPage() {
       </AnimatePresence>
 
       {gameStatus === 'idle' && (
-         <StartScreen 
-            onStartGame={handleStartGameWithDifficulty} 
-            title={gameTitle} 
+         <StartScreen
+            onStartGame={handleStartGameWithDifficulty}
+            title={gameTitle}
             description={gameDescription}
             instructions={gameInstructions}
             icon={Zap}
@@ -123,7 +125,7 @@ export default function TargetTapPage() {
       )}
 
       {gameStatus === 'countdown' && (
-        <motion.div 
+        <motion.div
           key="countdown-tt"
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -134,7 +136,7 @@ export default function TargetTapPage() {
           <p className="text-2xl font-headline mt-4">Get Ready to Tap ({selectedDifficulty})!</p>
         </motion.div>
       )}
-      
+
       <AnimatePresence>
         {gameStatus === 'playing' && (
           <motion.div
@@ -142,7 +144,7 @@ export default function TargetTapPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full flex justify-center mt-16 sm:mt-20" 
+            className="w-full flex justify-center mt-16 sm:mt-20"
           >
             <ReactionGameBoard targets={targets} onTargetClick={handleTargetClick} />
           </motion.div>
@@ -150,19 +152,19 @@ export default function TargetTapPage() {
       </AnimatePresence>
 
       {gameStatus === 'gameOver' && (
-        <GameOverScreen 
-          score={score} 
-          onPlayAgain={handlePlayAgainFromGameOver} 
+        <GameOverScreen
+          score={score}
+          onPlayAgain={handlePlayAgainFromGameOver}
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
-          gameName={`${gameTitle} (${selectedDifficulty})`}
+          gameName={`${gameTitle} (${currentDifficulty})`}
         />
       )}
-      
-      <LeaderboardDialog 
-        isOpen={isLeaderboardOpen} 
-        onClose={toggleLeaderboard} 
-        scores={leaderboardScores}
-        gameName={gameTitle} // Leaderboard shows combined scores for now
+
+      <LeaderboardDialog
+        isOpen={isLeaderboardOpen}
+        onClose={toggleLeaderboard}
+        scores={leaderboardScores as ScoreEntry[]}
+        gameName={gameTitle}
       />
     </main>
   );
