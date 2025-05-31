@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react'; // Added useState here
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, Bird as BirdIcon } from 'lucide-react'; // Renamed to avoid conflict
@@ -30,7 +30,7 @@ export default function FlappyBirdPage() {
     gameAreaWidth,
   } = useFlappyBirdLogic();
 
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = React.useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false); // Changed from React.useState
 
   useEffect(() => {
     loadLeaderboard();
