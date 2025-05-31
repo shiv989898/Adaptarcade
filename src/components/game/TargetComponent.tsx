@@ -11,7 +11,11 @@ interface TargetComponentProps {
 const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) => {
   const IconComponent = target.icon;
 
-  const displaySize = target.currentSize;
+  // Calculate scale: only standard targets grow.
+  const currentScale = target.type === 'standard' ? target.currentSize / target.initialSize : 1;
+  
+  // Shadow blur radius should be dynamic with the visual size
+  const shadowBlurRadius = target.currentSize / 5;
 
   const targetBaseClasses = "transform focus:outline-none flex items-center justify-center";
   const targetTypeClasses = {
@@ -22,32 +26,39 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
 
   return (
     <motion.button
-      layoutId={target.id} // Important for AnimatePresence
-      initial={{ scale: 0, opacity: 0, rotate: Math.random() * 30 - 15 }}
+      layoutId={target.id} 
+      initial={{ scale: 0, opacity: 0, rotate: Math.random() * 10 - 5 }} // Slightly reduced initial rotation
       animate={{ 
-        scale: 1, 
+        scale: currentScale, // Animate scale
         opacity: 1, 
         rotate: 0,
-        width: `${displaySize}px`, 
-        height: `${displaySize}px`,
       }}
       exit={{ scale: 0, opacity: 0, transition: { duration: 0.15, ease: "easeOut" } }}
-      whileTap={{ scale: 0.85, opacity: 0.7, rotate: 3 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 25 }} // Slightly softer spring
+      whileTap={{ scale: currentScale * 0.85, opacity: 0.7, rotate: 3 }} // Tap scale relative to currentScale
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }} // Adjusted damping
       style={{
         position: 'absolute',
-        left: `calc(${target.x}% - ${displaySize / 2}px)`,
-        top: `calc(${target.y}% - ${displaySize / 2}px)`,
+        // Positioning is based on the center of the INITIAL size
+        left: `calc(${target.x}% - ${target.initialSize / 2}px)`,
+        top: `calc(${target.y}% - ${target.initialSize / 2}px)`,
+        // Base dimensions are the INITIAL size
+        width: `${target.initialSize}px`,
+        height: `${target.initialSize}px`,
         backgroundColor: target.color,
         borderRadius: target.type === 'precision' ? '8px' : '50%',
         cursor: 'pointer',
-        boxShadow: `0px 0px ${displaySize / 5}px ${target.color}99, 0 0 4px rgba(0,0,0,0.2)`,
+        // Shadow based on CURRENT visual size for a dynamic effect
+        boxShadow: `0px 0px ${shadowBlurRadius}px ${target.color}99, 0 0 4px rgba(0,0,0,0.2)`,
+        transformOrigin: 'center center', // Ensure scaling from the center
       }}
       className={cn(targetBaseClasses, targetTypeClasses[target.type])}
       onClick={() => onClick(target.id)}
       aria-label={`Target type ${target.type} worth up to ${target.points} points`}
     >
-      {IconComponent && <IconComponent size={displaySize * 0.6} className={cn(
+      {IconComponent && <IconComponent 
+        // Icon size should be relative to initialSize, as the parent's scale transform will resize it.
+        size={target.initialSize * 0.6} 
+        className={cn(
         "pointer-events-none",
         target.type === 'precision' ? 'text-accent-foreground' : 'text-white/90'
         )} />}
@@ -56,5 +67,3 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
 };
 
 export default TargetComponent;
-
-    
