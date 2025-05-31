@@ -41,10 +41,10 @@ export default function GameHubPage() {
     <main className="flex-grow flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-background to-primary/10">
       <header className="mb-12 text-center">
         <h1 className="text-5xl sm:text-6xl font-headline font-bold text-primary mb-4">
-          Game Arcade
+          Adaptarcade
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl">
-          Welcome to the Firebase Studio Game Arcade! Choose a game below and test your skills.
+          Welcome to the Game Arcade! Choose a game below and test your skills.
         </p>
       </header>
 
@@ -55,7 +55,7 @@ export default function GameHubPage() {
       </div>
       
       <footer className="mt-16 text-center text-sm text-muted-foreground">
-        <p>&copy; 2025 Firebase Studio. All games are for demonstration purposes.</p>
+        <p>&copy; 2025 Adaptarcade. All games are for demonstration purposes.</p>
       </footer>
     </main>
   );

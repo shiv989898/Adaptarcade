@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import SafeAnalytics from '@/components/core/safe-analytics'; // Updated import
 
 export const metadata: Metadata = {
-  title: 'Firebase Studio Game Arcade',
-  description: 'A collection of fun mini-games built with Next.js and Firebase Studio!',
+  title: 'Adaptarcade Game Arcade',
+  description: 'A collection of fun mini-games!',
 };
 
 export default function RootLayout({
