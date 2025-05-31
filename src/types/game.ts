@@ -29,6 +29,7 @@ export interface ScoreEntry {
   mode?: DecoyFrequencyMode; // For TargetTap
   accuracy?: number; // For Typing Game
   difficulty?: Difficulty; // For MoleMash
+  duration?: number; // For Typing Game, in seconds
 }
 
 
@@ -64,6 +65,10 @@ export interface Word {
 
 export type TypingGameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
+export interface WpmEntry {
+  time: number; // Time in seconds from start of test
+  wpm: number;
+}
 export interface TypingStats {
   wpm: number;
   accuracy: number;
@@ -72,4 +77,6 @@ export interface TypingStats {
   totalCharsTyped: number; // All characters typed including corrections
   totalWordsAttempted: number;
   correctWords: number;
+  wpmHistory: WpmEntry[];
 }
+

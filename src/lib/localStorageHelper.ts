@@ -4,7 +4,7 @@ import type { ScoreEntry, DecoyFrequencyMode, Difficulty } from '@/types/game';
 const TARGET_TAP_LEADERBOARD_KEY = 'precisionTapLeaderboard';
 const MOLE_MASH_LEADERBOARD_KEY = 'moleMashLeaderboard';
 const QUICK_CLICK_LEADERBOARD_KEY = 'quickClickLeaderboard';
-const TYPING_TEST_LEADERBOARD_KEY = 'typingTestLeaderboard';
+const TYPING_TEST_LEADERBOARD_KEY = 'typingTestLeaderboard_v2'; // v2 to include duration
 
 const MAX_LEADERBOARD_ENTRIES = 10;
 
@@ -12,7 +12,13 @@ const MAX_LEADERBOARD_ENTRIES = 10;
 const getGameLeaderboard = (key: string): ScoreEntry[] => {
   if (typeof window === 'undefined') return [];
   const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
+  try {
+    const parsedData = data ? JSON.parse(data) : [];
+    return Array.isArray(parsedData) ? parsedData : [];
+  } catch (error) {
+    console.error("Error parsing leaderboard data from localStorage:", error);
+    return [];
+  }
 };
 
 // Generic function to add score to any game's leaderboard
@@ -73,7 +79,7 @@ export const addQuickClickScore = (scoreData: { playerName: string; score: numbe
 // --- Typing Test Specific ---
 export const getTypingTestLeaderboard = (): ScoreEntry[] => getGameLeaderboard(TYPING_TEST_LEADERBOARD_KEY);
 
-export const addTypingTestScore = (scoreData: { playerName: string; score: number; accuracy: number }): void => {
+export const addTypingTestScore = (scoreData: { playerName: string; score: number; accuracy: number; duration: number }): void => {
   const entry: ScoreEntry = { // score here is WPM
     ...scoreData,
     id: Date.now().toString() + Math.random().toString(36).substring(2,9),
@@ -81,3 +87,4 @@ export const addTypingTestScore = (scoreData: { playerName: string; score: numbe
   };
   addScoreToGameLeaderboard(TYPING_TEST_LEADERBOARD_KEY, entry);
 };
+

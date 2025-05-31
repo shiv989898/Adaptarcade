@@ -5,11 +5,12 @@ import { Award, RotateCcw, Trophy, PartyPopper } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface GameOverScreenProps {
-  score: number;
+  score: number; // Final WPM or primary score
   onPlayAgain: () => void;
   onShowLeaderboard: () => void;
   gameName?: string;
-  additionalInfo?: string; // For game-specific messages like "You clicked X times!"
+  additionalInfo?: string; 
+  children?: React.ReactNode; // For graph or other custom content
 }
 
 const GameOverScreen: React.FC<GameOverScreenProps> = ({ 
@@ -17,7 +18,8 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
   onPlayAgain, 
   onShowLeaderboard, 
   gameName = "Game",
-  additionalInfo 
+  additionalInfo,
+  children
 }) => {
   return (
     <motion.div 
@@ -27,26 +29,24 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20 p-4"
     >
-      <Card className="w-full max-w-md shadow-2xl bg-card text-card-foreground border-primary/30">
+      <Card className="w-full max-w-lg shadow-2xl bg-card text-card-foreground border-primary/30">
         <CardHeader className="text-center pb-4">
            <div className="mx-auto flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-primary/20 mb-3 sm:mb-4 animate-pulse">
             <Award className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
           </div>
           <CardTitle className="text-3xl sm:text-4xl font-headline text-primary">
-            {gameName} Over!
+            {gameName} Complete!
           </CardTitle>
-          {additionalInfo ? (
-             <CardDescription className="text-md sm:text-lg text-muted-foreground pt-2">
+          {/* Primary score display */}
+          <p className="text-4xl sm:text-5xl font-bold text-accent py-1 sm:py-2">{score} <span className="text-2xl sm:text-3xl text-muted-foreground">WPM</span></p>
+          {additionalInfo && (
+             <CardDescription className="text-md sm:text-lg text-muted-foreground pt-1">
               {additionalInfo}
             </CardDescription>
-          ) : (
-            <CardDescription className="text-md sm:text-lg text-muted-foreground pt-2">
-              You scored an impressive
-            </CardDescription>
           )}
-           <p className="text-4xl sm:text-5xl font-bold text-accent py-1 sm:py-2">{score} points!</p>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3 sm:gap-4 px-4 sm:px-6 pb-4 sm:pb-6">
+          {children && <div className="w-full mb-4">{children}</div>}
           <Button 
             onClick={onPlayAgain} 
             size="lg" 
@@ -66,7 +66,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
          <CardFooter className="pt-4 sm:pt-6">
             <p className="text-xs sm:text-sm text-muted-foreground text-center w-full flex items-center justify-center gap-1">
               <PartyPopper className="h-4 w-4 text-accent" />
-              {score > 0 ? "Great effort!" : "Better luck next time!"}
+              {score > 0 ? "Well Typed!" : "Keep Practicing!"}
             </p>
          </CardFooter>
       </Card>
@@ -75,3 +75,4 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
 };
 
 export default GameOverScreen;
+
