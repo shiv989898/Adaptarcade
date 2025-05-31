@@ -1,2 +1,4 @@
+
 // Flows will be imported for their side effects in this file.
-import './flows/mazeGame'; // Added for AdaptiMaze mock flows
+// No AI flows currently active for Target Tap game.
+// import './flows/reactionGameFlows'; // Example if you add AI features

@@ -1,9 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Arial, Helvetica, sans-serif; /* Fallback, Space Grotesk is primary via layout */
 }
 
 @layer base {
@@ -107,3 +108,5 @@ body {
 .fade-in-scale {
   animation: fadeInScale 0.3s ease-out forwards;
 }
+
+/* Removed .animate-pulse-accent as it was maze specific */

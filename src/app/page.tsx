@@ -1,106 +1,109 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import MazeBoard from '@/components/game/MazeBoard';
 import HUD from '@/components/game/HUD';
-import MobileControls from '@/components/game/MobileControls';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
 import StartScreen from '@/components/game/StartScreen';
-import LevelCompleteModal from '@/components/game/LevelCompleteModal';
+import ReactionGameBoard from '@/components/game/ReactionGameBoard';
+import GameOverScreen from '@/components/game/GameOverScreen';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-const CELL_SIZE_DESKTOP = 32;
-const CELL_SIZE_MOBILE = 24;
-
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function HomePage() {
   const {
-    level,
-    maze,
-    playerPosition,
-    timer,
+    score,
+    timeLeft,
     gameStatus,
-    startGame,
-    movePlayer,
+    targets,
     leaderboardScores,
-    loadLeaderboard,
-    requestHint,
-    hintAvailable,
+    countdownValue,
+    startGame,
     restartGame,
-    mazeDimensions
+    handleTargetClick,
+    loadLeaderboard,
+    setGameStatus, // Added to handle navigation from GameOverScreen
   } = useGameLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [cellSize, setCellSize] = useState(CELL_SIZE_DESKTOP);
-
-  useEffect(() => {
-    const updateCellSize = () => {
-      if (window.innerWidth < 768) { // md breakpoint
-        setCellSize(CELL_SIZE_MOBILE);
-      } else {
-        setCellSize(CELL_SIZE_DESKTOP);
-      }
-    };
-    updateCellSize();
-    window.addEventListener('resize', updateCellSize);
-    return () => window.removeEventListener('resize', updateCellSize);
-  }, []);
 
   useEffect(() => {
     loadLeaderboard();
-  }, [loadLeaderboard, gameStatus]); // Reload leaderboard when game status changes, e.g., after level complete
+  }, [loadLeaderboard, gameStatus]);
 
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
-  const boardWidth = mazeDimensions.cols * cellSize + 4; // +4 for border
-  const boardHeight = mazeDimensions.rows * cellSize + 4;
-
-  if (gameStatus === 'idle') {
-    return (
-      <main className="flex-grow flex items-center justify-center bg-gradient-to-br from-background to-primary/10">
-         <StartScreen onStartGame={startGame} />
-      </main>
-    );
-  }
+  const handlePlayAgainFromGameOver = () => {
+    // setGameStatus('idle'); // This will show StartScreen briefly, then startGame will trigger countdown
+    startGame(); // Directly start the game sequence
+  };
   
+  const handleShowLeaderboardFromGameOver = () => {
+    // setGameStatus('idle'); // Or keep game over screen in background?
+    setIsLeaderboardOpen(true);
+  }
+
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-background to-primary/10">
-      <HUD
-        level={level}
-        timer={timer}
-        onHint={requestHint}
-        onToggleLeaderboard={toggleLeaderboard}
-        onRestart={restartGame}
-        hintAvailable={hintAvailable}
-        gameStatus={gameStatus}
-      />
+      <AnimatePresence>
+        {gameStatus !== 'idle' && gameStatus !== 'countdown' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="w-full contents" // Use contents to not interfere with HUD's fixed positioning
+          >
+            <HUD
+              score={score}
+              timeLeft={timeLeft}
+              onToggleLeaderboard={toggleLeaderboard}
+              onRestart={restartGame}
+              gameStatus={gameStatus}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {gameStatus === 'loading' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-          <p className="text-xl font-headline">Generating Level {level}...</p>
-        </div>
+      {gameStatus === 'idle' && (
+         <StartScreen onStartGame={startGame} />
       )}
 
-      {gameStatus === 'levelComplete' && (
-        <LevelCompleteModal isOpen={true} level={level} time={timer} />
+      {gameStatus === 'countdown' && (
+        <motion.div 
+          key="countdown"
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.5, opacity: 0 }}
+          className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm text-center"
+        >
+          <p className="text-8xl font-bold text-primary animate-ping" style={{animationDuration: '1s'}}>{countdownValue}</p>
+          <p className="text-2xl font-headline mt-4">Get Ready!</p>
+        </motion.div>
       )}
       
-      <div 
-        className={cn(
-          "transition-opacity duration-500 ease-in-out",
-          (gameStatus === 'loading' || gameStatus === 'levelComplete') ? 'opacity-0' : 'opacity-100'
+      <AnimatePresence>
+        {gameStatus === 'playing' && (
+          <motion.div
+            key="gameboard"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full flex justify-center mt-20 sm:mt-24" // Add margin for HUD
+          >
+            <ReactionGameBoard targets={targets} onTargetClick={handleTargetClick} />
+          </motion.div>
         )}
-        style={{width: boardWidth, height: boardHeight, margin: 'auto'}} // Ensure it's centered and fits
-      >
-        {maze && playerPosition && (gameStatus === 'playing' || gameStatus === 'gameOver') && (
-          <MazeBoard maze={maze} playerPosition={playerPosition} cellSize={cellSize} />
-        )}
-      </div>
+      </AnimatePresence>
 
-      <MobileControls onMove={movePlayer} disabled={gameStatus !== 'playing'} />
+      {gameStatus === 'gameOver' && (
+        <GameOverScreen 
+          score={score} 
+          onPlayAgain={handlePlayAgainFromGameOver} 
+          onShowLeaderboard={handleShowLeaderboardFromGameOver}
+        />
+      )}
+      
       <LeaderboardDialog isOpen={isLeaderboardOpen} onClose={toggleLeaderboard} scores={leaderboardScores} />
     </main>
   );

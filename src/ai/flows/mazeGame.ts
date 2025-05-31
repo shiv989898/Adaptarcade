@@ -1,83 +1,52 @@
-// This is a mock AI flow file. In a real Genkit setup, these would be defined flows.
-// These functions simulate interactions with an LLM.
-import type { MazeData, Obstacle, PlayerPosition } from '@/types/maze';
 
-/**
- * MOCK FUNCTION
- * Simulates an AI call to get obstacle placements for the current maze level.
- * In a real scenario, this would interact with a Genkit flow.
- */
-export const getObstaclesForMaze = async (maze: MazeData, level: number): Promise<Obstacle[]> => {
-  console.log(`AI: Requesting obstacles for level ${level}`);
-  // Simulate some delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+// This file previously contained mock AI flows for a maze game.
+// It is no longer used for the "Target Tap" reaction game.
+// You can add new Genkit flows here if you want to incorporate AI 
+// features into the reaction game, such as:
+// - Adaptive difficulty based on player performance
+// - AI-generated target patterns or special events
+// - Personalized feedback or challenges
 
-  const obstacles: Obstacle[] = [];
-  const numObstacles = Math.floor(level / 2); // More obstacles at higher levels
+// 'use server'; // Uncomment if you add server-side Genkit flows
+// import {ai} from '@/ai/genkit';
+// import {z} from 'genkit';
 
-  if (maze.length === 0 || maze[0].length === 0) return [];
+// Example structure for a new flow:
+/*
+const ExampleInputSchema = z.object({
+  currentScore: z.number(),
+  reactionTime: z.number(),
+});
+export type ExampleInput = z.infer<typeof ExampleInputSchema>;
 
-  for (let i = 0; i < numObstacles; i++) {
-    let r, c;
-    // Try to find an empty cell that's not start or end
-    let attempts = 0;
-    do {
-      r = Math.floor(Math.random() * maze.length);
-      c = Math.floor(Math.random() * maze[0].length);
-      attempts++;
-    } while ((maze[r][c].isStart || maze[r][c].isEnd || maze[r][c].obstacleType) && attempts < 50);
-    
-    if (attempts < 50) {
-      const obstacleTypes = ['rock', 'mud_patch', 'teleporter_decoy'];
-      const randomType = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-      obstacles.push({
-        position: { r, c },
-        type: randomType,
-        description: `A mysterious ${randomType} appeared!`,
-      });
-    }
+const ExampleOutputSchema = z.object({
+  nextTargetSpeed: z.number(),
+  specialEvent: z.string().optional(),
+});
+export type ExampleOutput = z.infer<typeof ExampleOutputSchema>;
+
+export async function getNextChallenge(input: ExampleInput): Promise<ExampleOutput> {
+  return exampleFlow(input);
+}
+
+const examplePrompt = ai.definePrompt({
+  name: 'exampleReactionGamePrompt',
+  input: {schema: ExampleInputSchema},
+  output: {schema: ExampleOutputSchema},
+  prompt: `Based on the player's score of {{currentScore}} and average reaction time of {{reactionTime}}ms, suggest parameters for the next challenge.`,
+});
+
+const exampleFlow = ai.defineFlow(
+  {
+    name: 'exampleReactionGameFlow',
+    inputSchema: ExampleInputSchema,
+    outputSchema: ExampleOutputSchema,
+  },
+  async (input) => {
+    const {output} = await examplePrompt(input);
+    return output!;
   }
-  
-  console.log(`AI: Generated ${obstacles.length} obstacles.`);
-  return obstacles;
-};
+);
+*/
 
-/**
- * MOCK FUNCTION
- * Simulates an AI call to get a hint for the player.
- * In a real scenario, this would interact with a Genkit flow.
- */
-export const getHintForPlayer = async (maze: MazeData, playerPosition: PlayerPosition, level: number): Promise<string> => {
-  console.log(`AI: Requesting hint for player at (${playerPosition.r}, ${playerPosition.c}) on level ${level}`);
-  // Simulate some delay
-  await new Promise(resolve => setTimeout(resolve, 700));
-
-  // Basic mock hint logic
-  const possibleMoves: string[] = [];
-  if (!maze[playerPosition.r][playerPosition.c].walls.top && playerPosition.r > 0) possibleMoves.push('North');
-  if (!maze[playerPosition.r][playerPosition.c].walls.bottom && playerPosition.r < maze.length - 1) possibleMoves.push('South');
-  if (!maze[playerPosition.r][playerPosition.c].walls.left && playerPosition.c > 0) possibleMoves.push('West');
-  if (!maze[playerPosition.r][playerPosition.c].walls.right && playerPosition.c < maze[0].length - 1) possibleMoves.push('East');
-  
-  let hint = "Explore your options!";
-  if (possibleMoves.length > 0) {
-    hint = `Perhaps try going ${possibleMoves[Math.floor(Math.random() * possibleMoves.length)]}?`;
-  }
-  
-  // Simulate a more "LLM-like" response
-  const creativeHints = [
-    "The path to victory is often winding. Look for an opening.",
-    "Sometimes the longest way round is the shortest way home... or to the exit.",
-    "Patience, young maze walker. The exit reveals itself to those who seek.",
-    "Consider the paths less traveled. Or the most obvious one. AI is tricky!",
-  ];
-  if (Math.random() < 0.3) { // 30% chance of a creative hint
-    hint = creativeHints[Math.floor(Math.random() * creativeHints.length)];
-  }
-
-  console.log(`AI: Generated hint: "${hint}"`);
-  return hint;
-};
-
-// Make sure this file is imported in dev.ts if it were a real flow
-// e.g. import './mazeGame'; in src/ai/dev.ts
+// Remember to import any new flows in src/ai/dev.ts

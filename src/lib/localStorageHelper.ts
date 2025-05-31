@@ -1,6 +1,7 @@
-import type { ScoreEntry } from '@/types/maze';
 
-const LEADERBOARD_KEY = 'adaptiMazeLeaderboard';
+import type { ScoreEntry } from '@/types/game';
+
+const LEADERBOARD_KEY = 'targetTapLeaderboard'; // Updated key for the new game
 const MAX_LEADERBOARD_ENTRIES = 10;
 
 export const getLeaderboard = (): ScoreEntry[] => {
@@ -19,11 +20,12 @@ export const addScoreToLeaderboard = (newScore: Omit<ScoreEntry, 'id' | 'date'>)
   };
   
   scores.push(entry);
+  // Sort by score (descending), then by date (most recent for ties, though less likely with unique IDs)
   scores.sort((a, b) => {
-    if (a.level !== b.level) {
-      return b.level - a.level; // Higher level first
+    if (a.score !== b.score) {
+      return b.score - a.score; 
     }
-    return a.time - b.time; // Lower time first for same level
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   
   const updatedScores = scores.slice(0, MAX_LEADERBOARD_ENTRIES);

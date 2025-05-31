@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -8,8 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { ScoreEntry } from '@/types/maze';
-import { Trophy } from 'lucide-react';
+import type { ScoreEntry } from '@/types/game'; // Updated type import
+import { Trophy, Star } from 'lucide-react';
 
 interface LeaderboardDialogProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, 
             <Trophy className="text-accent h-7 w-7" /> Leaderboard
           </DialogTitle>
           <DialogDescription>
-            Top players who conquered the AdaptiMaze!
+            Top reflex masters of Target Tap!
           </DialogDescription>
         </DialogHeader>
         {scores.length > 0 ? (
@@ -36,17 +37,17 @@ const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, 
                 <TableRow>
                   <TableHead className="w-[50px]">Rank</TableHead>
                   <TableHead>Player</TableHead>
-                  <TableHead className="text-right">Level</TableHead>
-                  <TableHead className="text-right">Time</TableHead>
+                  <TableHead className="text-right flex items-center justify-end gap-1"><Star className="h-4 w-4"/>Score</TableHead>
+                  {/* <TableHead className="text-right">Date</TableHead> Optional: if you want to show date */}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {scores.map((score, index) => (
                   <TableRow key={score.id} className={index === 0 ? 'bg-accent/10' : ''}>
                     <TableCell className="font-medium">{index + 1}</TableCell>
-                    <TableCell>{score.playerName || 'Anonymous'}</TableCell>
-                    <TableCell className="text-right">{score.level}</TableCell>
-                    <TableCell className="text-right">{score.time}s</TableCell>
+                    <TableCell>{score.playerName || 'QuickFinger'}</TableCell>
+                    <TableCell className="text-right font-bold">{score.score}</TableCell>
+                    {/* <TableCell className="text-right text-xs text-muted-foreground">{new Date(score.date).toLocaleDateString()}</TableCell> */}
                   </TableRow>
                 ))}
               </TableBody>

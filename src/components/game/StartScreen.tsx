@@ -1,6 +1,7 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Gamepad2 } from 'lucide-react';
+import { Play, Zap } from 'lucide-react'; // Zap for reaction/speed
 
 interface StartScreenProps {
   onStartGame: () => void;
@@ -12,11 +13,11 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStartGame }) => {
       <Card className="w-full max-w-md shadow-2xl bg-card/90 backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="inline-flex items-center justify-center mb-4">
-            <Gamepad2 className="h-16 w-16 text-primary animate-pulse" />
+            <Zap className="h-16 w-16 text-primary animate-pulse" />
           </div>
-          <CardTitle className="text-5xl font-headline text-primary">AdaptiMaze</CardTitle>
+          <CardTitle className="text-5xl font-headline text-primary">Target Tap</CardTitle>
           <CardDescription className="text-lg text-muted-foreground pt-2">
-            Navigate the ever-changing labyrinth. Each level brings new challenges!
+            Test your reflexes! Tap the targets as fast as you can.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
@@ -24,10 +25,9 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStartGame }) => {
             <Play className="mr-3 h-7 w-7" /> Start Game
           </Button>
           <div className="text-sm text-center text-muted-foreground">
-            <p className="font-bold">Controls:</p>
-            <p>Arrow Keys or WASD to move.</p>
-            <p>'H' for a hint.</p>
-            <p>On mobile, use on-screen controls.</p>
+            <p className="font-bold">How to Play:</p>
+            <p>Click or tap the colored circles that appear.</p>
+            <p>Score as many points as possible before time runs out!</p>
           </div>
         </CardContent>
       </Card>

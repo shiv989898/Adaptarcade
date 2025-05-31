@@ -1,32 +1,40 @@
+
+'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MazeData, PlayerPosition, Obstacle, ScoreEntry } from '@/types/maze';
-import { generateMaze, getStartPosition, checkWinCondition, canMove } from '@/lib/mazeGenerator';
+import type { TargetConfig, ScoreEntry } from '@/types/game';
 import { getLeaderboard, addScoreToLeaderboard } from '@/lib/localStorageHelper';
-import { getObstaclesForMaze, getHintForPlayer } from '@/ai/flows/mazeGame'; // Mock AI
 import { useToast } from '@/hooks/use-toast';
 
-const INITIAL_LEVEL = 1;
-const BASE_MAZE_SIZE = 7; // Ensure odd numbers for better maze structure
-const MAZE_SIZE_INCREMENT = 2; // Increment by 2 to keep it odd
-const HINT_COOLDOWN = 10000; // 10 seconds
+export type GameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
-export type GameStatus = 'idle' | 'playing' | 'levelComplete' | 'gameOver' | 'loading';
+const GAME_DURATION = 30; // seconds
+const COUNTDOWN_SECONDS = 3;
+const TARGET_POINTS = 10;
+const TARGET_SIZE_MIN = 40; // px
+const TARGET_SIZE_MAX = 70; // px
+// Array of vibrant colors for targets
+const TARGET_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--accent))',
+  '#34D399', // Emerald 500
+  '#F59E0B', // Amber 500
+  '#EC4899', // Pink 500
+  '#8B5CF6', // Violet 500
+];
+
 
 export const useGameLogic = () => {
-  const [level, setLevel] = useState(INITIAL_LEVEL);
-  const [maze, setMaze] = useState<MazeData | null>(null);
-  const [playerPosition, setPlayerPosition] = useState<PlayerPosition>(getStartPosition());
-  const [timer, setTimer] = useState(0);
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [gameStatus, setGameStatus] = useState<GameStatus>('idle');
+  const [targets, setTargets] = useState<TargetConfig[]>([]);
   const [leaderboardScores, setLeaderboardScores] = useState<ScoreEntry[]>([]);
-  const [hint, setHint] = useState<string | null>(null);
-  const [hintAvailable, setHintAvailable] = useState(true);
-  const lastHintTimeRef = useRef<number>(0);
+  const [countdownValue, setCountdownValue] = useState(COUNTDOWN_SECONDS);
+
   const { toast } = useToast();
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const mazeRows = BASE_MAZE_SIZE + (level - 1) * MAZE_SIZE_INCREMENT;
-  const mazeCols = BASE_MAZE_SIZE + (level - 1) * MAZE_SIZE_INCREMENT;
+  const targetGenerationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playerNameRef = useRef<string>('Player'); // Could be set via an input later
 
   const loadLeaderboard = useCallback(() => {
     setLeaderboardScores(getLeaderboard());
@@ -36,164 +44,109 @@ export const useGameLogic = () => {
     loadLeaderboard();
   }, [loadLeaderboard]);
 
-  const resetTimer = useCallback(() => {
+  const clearTimers = useCallback(() => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    setTimer(0);
+    if (targetGenerationIntervalRef.current) clearInterval(targetGenerationIntervalRef.current);
   }, []);
-  
-  const startTimer = useCallback(() => {
-    resetTimer();
-    timerIntervalRef.current = setInterval(() => {
-      setTimer(prevTime => prevTime + 1);
-    }, 1000);
-  }, [resetTimer]);
 
-
-  const setupLevel = useCallback(async (currentLevel: number) => {
-    setGameStatus('loading');
-    setHint(null);
-    const newMaze = generateMaze(mazeRows, mazeCols);
-    
-    // Add obstacles using AI (mock)
-    const obstacles = await getObstaclesForMaze(newMaze, currentLevel);
-    obstacles.forEach(obs => {
-      if (newMaze[obs.position.r] && newMaze[obs.position.r][obs.position.c]) {
-        // Ensure not placing on start/end
-        if(!newMaze[obs.position.r][obs.position.c].isStart && !newMaze[obs.position.r][obs.position.c].isEnd) {
-           newMaze[obs.position.r][obs.position.c].obstacleType = obs.type;
-        }
-      }
-    });
-
-    setMaze(newMaze);
-    setPlayerPosition(getStartPosition());
-    resetTimer();
-    setGameStatus('playing');
-    startTimer();
-  }, [mazeRows, mazeCols, resetTimer, startTimer]);
+  const generateTarget = useCallback(() => {
+    const newTargetId = `target-${Date.now()}-${Math.random()}`;
+    const targetSize = Math.floor(Math.random() * (TARGET_SIZE_MAX - TARGET_SIZE_MIN + 1)) + TARGET_SIZE_MIN;
+    // Ensure target is fully visible within the board (assuming board padding/border is handled by CSS)
+    // Max x/y should ensure target doesn't go off screen. Assuming 100% is edge.
+    // For a target of size `S`, its center's max percentage `P` is `100 - (S / BoardDimension * 100 / 2)`.
+    // For simplicity here, we'll just use a slightly reduced range like 5-95% for x and y.
+    // A more robust solution would involve knowing game board dimensions.
+    const newTarget: TargetConfig = {
+      id: newTargetId,
+      x: Math.random() * 80 + 10, // % position from left (10% to 90%)
+      y: Math.random() * 80 + 10, // % position from top (10% to 90%)
+      size: targetSize,
+      points: TARGET_POINTS,
+      color: TARGET_COLORS[Math.floor(Math.random() * TARGET_COLORS.length)],
+    };
+    // For "one target at a time" mode
+    setTargets([newTarget]);
+    // For "multiple targets" mode:
+    // setTargets(prevTargets => [...prevTargets, newTarget].slice(-MAX_TARGETS_ON_SCREEN));
+  }, []);
 
   const startGame = useCallback(() => {
-    setLevel(INITIAL_LEVEL);
-    setupLevel(INITIAL_LEVEL);
-  }, [setupLevel]);
+    clearTimers();
+    setScore(0);
+    setTimeLeft(GAME_DURATION);
+    setCountdownValue(COUNTDOWN_SECONDS);
+    setGameStatus('countdown');
+    setTargets([]); // Clear any old targets
+
+    let currentCountdown = COUNTDOWN_SECONDS;
+    timerIntervalRef.current = setInterval(() => {
+      currentCountdown--;
+      setCountdownValue(currentCountdown);
+      if (currentCountdown === 0) {
+        clearInterval(timerIntervalRef.current!);
+        setGameStatus('playing');
+        generateTarget(); // Generate first target
+        
+        // Game timer
+        timerIntervalRef.current = setInterval(() => {
+          setTimeLeft(prevTime => {
+            if (prevTime <= 1) {
+              clearInterval(timerIntervalRef.current!);
+              setGameStatus('gameOver');
+              addScoreToLeaderboard({ playerName: playerNameRef.current, score });
+              loadLeaderboard();
+              setTargets([]); // Clear targets on game over
+              return 0;
+            }
+            return prevTime - 1;
+          });
+        }, 1000);
+
+        // Optional: continuously generate targets if desired (for more than one target on screen)
+        // targetGenerationIntervalRef.current = setInterval(generateTarget, 2000); 
+      }
+    }, 1000);
+  }, [clearTimers, generateTarget, loadLeaderboard, score]);
+
+  const handleTargetClick = useCallback((id: string, points: number) => {
+    if (gameStatus !== 'playing') return;
+    setScore(prevScore => prevScore + points);
+    setTargets(prevTargets => prevTargets.filter(target => target.id !== id));
+    
+    // Generate a new target immediately after one is clicked
+    generateTarget();
+
+    toast({
+      title: `+${points} points!`,
+      duration: 1000,
+    });
+  }, [gameStatus, generateTarget, toast]);
 
   const restartGame = useCallback(() => {
+    clearTimers();
     setGameStatus('idle');
-    resetTimer();
-    setHint(null);
-    setLevel(INITIAL_LEVEL);
-     // No need to call setupLevel here, idle state will show start screen
-  }, [resetTimer]);
-  
-  const handleLevelComplete = useCallback(() => {
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    setGameStatus('levelComplete');
-    toast({
-      title: `Level ${level} Complete!`,
-      description: `Time: ${timer}s. Well done!`,
-      duration: 3000,
-    });
-    addScoreToLeaderboard({ playerName: 'Player', level, time: timer });
-    loadLeaderboard();
-    
-    setTimeout(() => {
-      setLevel(prevLevel => prevLevel + 1);
-    }, 2000); // Brief pause before next level
-  }, [level, timer, loadLeaderboard, toast]);
+    setTargets([]);
+  }, [clearTimers]);
 
-  useEffect(() => {
-    if (gameStatus === 'levelComplete' && level > 0) { // check level > 0 to avoid initial setup
-      // This effect is triggered after level state is updated by handleLevelComplete's setTimeout
-      setupLevel(level);
-    } else if (gameStatus === 'idle' && level === INITIAL_LEVEL){
-      // This means we are at the very start or after a restart.
-      // Don't auto-setup, wait for user to click start.
-    }
-  }, [level, gameStatus, setupLevel]);
-
-  const movePlayer = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
-    if (gameStatus !== 'playing' || !maze) return;
-
-    if (canMove(maze, playerPosition, direction)) {
-      let newR = playerPosition.r;
-      let newC = playerPosition.c;
-
-      switch (direction) {
-        case 'up': newR--; break;
-        case 'down': newR++; break;
-        case 'left': newC--; break;
-        case 'right': newC++; break;
-      }
-      setPlayerPosition({ r: newR, c: newC });
-
-      if (checkWinCondition({ r: newR, c: newC }, maze)) {
-        handleLevelComplete();
-      }
-    } else {
-      toast({ title: "Ouch!", description: "Can't move there.", variant: "destructive", duration: 1500 });
-    }
-  }, [gameStatus, maze, playerPosition, handleLevelComplete, toast]);
-  
-  const requestHint = useCallback(async () => {
-    if (!maze || !hintAvailable || gameStatus !== 'playing') return;
-
-    const now = Date.now();
-    if (now - lastHintTimeRef.current < HINT_COOLDOWN) {
-      toast({ title: "Hint cooldown", description: `Please wait ${Math.ceil((HINT_COOLDOWN - (now - lastHintTimeRef.current))/1000)}s.`, duration: 2000});
-      return;
-    }
-
-    setHintAvailable(false);
-    lastHintTimeRef.current = now;
-    
-    const aiHint = await getHintForPlayer(maze, playerPosition, level);
-    setHint(aiHint);
-    toast({ title: "Hint from AI", description: aiHint, duration: 5000 });
-
-    setTimeout(() => {
-      setHintAvailable(true);
-    }, HINT_COOLDOWN);
-  }, [maze, playerPosition, level, hintAvailable, gameStatus, toast]);
-
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (gameStatus !== 'playing') return;
-      switch (event.key) {
-        case 'ArrowUp': case 'w': case 'W': movePlayer('up'); event.preventDefault(); break;
-        case 'ArrowDown': case 's': case 'S': movePlayer('down'); event.preventDefault(); break;
-        case 'ArrowLeft': case 'a': case 'A': movePlayer('left'); event.preventDefault(); break;
-        case 'ArrowRight': case 'd': case 'D': movePlayer('right'); event.preventDefault(); break;
-        case 'h': case 'H': requestHint(); event.preventDefault(); break;
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [movePlayer, requestHint, gameStatus]);
-
-  // Cleanup timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+      clearTimers();
     };
-  }, []);
+  }, [clearTimers]);
 
   return {
-    level,
-    maze,
-    playerPosition,
-    timer,
+    score,
+    timeLeft,
     gameStatus,
-    startGame,
-    movePlayer,
+    targets,
     leaderboardScores,
-    loadLeaderboard,
-    requestHint,
-    hint,
-    hintAvailable,
+    countdownValue,
+    startGame,
     restartGame,
-    mazeDimensions: {rows: mazeRows, cols: mazeCols}
+    handleTargetClick,
+    loadLeaderboard, // Expose for manual refresh if needed
+    setGameStatus, // Useful for GameOverScreen to navigate
   };
 };
