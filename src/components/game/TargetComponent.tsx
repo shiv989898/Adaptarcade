@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface TargetComponentProps {
   target: TargetConfig;
-  onClick: (id: string) // Send only id, hook will calculate points
+  onClick: (id: string) => void; // Send only id, hook will calculate points
 }
 
 const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) => {
