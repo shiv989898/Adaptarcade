@@ -9,25 +9,25 @@ body {
 
 @layer base {
   :root {
-    --background: 231 20% 21%; /* Dark Gray #2B2D42 */
-    --foreground: 0 0% 98%; /* Near White */
-    --card: 231 20% 25%; /* Slightly lighter than background */
-    --card-foreground: 0 0% 98%;
-    --popover: 231 20% 25%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 270 69% 61%; /* Vibrant Purple #9D4EDD */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 231 20% 30%; /* Muted secondary for less emphasis */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 231 20% 28%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 160 100% 75%; /* Electric Green #80FFDB */
-    --accent-foreground: 231 20% 10%; /* Dark contrast for green */
+    --background: 260 40% 18%; /* Dark Indigo/Purple */
+    --foreground: 260 15% 95%; /* Very Light Lavender Gray */
+    --card: 260 40% 22%; /* Slightly Lighter Indigo/Purple */
+    --card-foreground: 260 15% 95%;
+    --popover: 260 40% 22%;
+    --popover-foreground: 260 15% 95%;
+    --primary: 270 69% 61%; /* Vibrant Purple #9D4EDD (Kept) */
+    --primary-foreground: 0 0% 98%; /* Kept */
+    --secondary: 260 30% 30%; /* Muted Purple */
+    --secondary-foreground: 260 10% 85%;
+    --muted: 260 40% 25%;
+    --muted-foreground: 260 10% 65%;
+    --accent: 160 100% 75%; /* Electric Green #80FFDB (Kept for contrast) */
+    --accent-foreground: 231 20% 10%; /* Kept */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 231 20% 35%;
-    --input: 231 20% 30%;
-    --ring: 160 100% 75%; /* Accent for focus rings */
+    --border: 260 30% 35%;
+    --input: 260 30% 28%;
+    --ring: 160 100% 75%; /* Accent for focus rings (Kept) */
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -35,37 +35,37 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Adjusted sidebar colors to match the theme */
-    --sidebar-background: 231 20% 18%; /* Darker than main bg */
-    --sidebar-foreground: 0 0% 80%; /* Lighter gray for text */
-    --sidebar-primary: 270 69% 61%; /* Vibrant Purple */
+    /* Adjusted sidebar colors to match the new purple theme */
+    --sidebar-background: 260 40% 15%; /* Even Darker Purple */
+    --sidebar-foreground: 260 10% 80%; 
+    --sidebar-primary: 270 69% 61%; /* Vibrant Purple (same as main) */
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 160 100% 75%; /* Electric Green */
+    --sidebar-accent: 160 100% 75%; /* Electric Green (same as main) */
     --sidebar-accent-foreground: 231 20% 10%;
-    --sidebar-border: 231 20% 25%;
+    --sidebar-border: 260 40% 25%;
     --sidebar-ring: 160 100% 75%;
   }
 
   /* Default light theme (if ever used, though app is dark) */
   .light {
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 260 50% 10%; /* Dark purple text for light theme */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 260 50% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover-foreground: 260 50% 10%;
     --primary: 270 69% 61%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 160 100% 75%;
-    --accent-foreground: 0 0% 9%;
+    --secondary: 260 20% 96%; /* Light lavender for secondary */
+    --secondary-foreground: 260 50% 15%;
+    --muted: 260 20% 96%;
+    --muted-foreground: 260 20% 45%;
+    --accent: 160 100% 45%; /* Darker green for light theme accent */
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --border: 260 20% 90%;
+    --input: 260 20% 90%;
     --ring: 270 69% 61%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -73,14 +73,14 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-background: 260 10% 98%; /* Very light lavender */
+    --sidebar-foreground: 260 30% 26%;
+    --sidebar-primary: 270 60% 50%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 260 20% 95%;
+    --sidebar-accent-foreground: 270 60% 50%;
+    --sidebar-border: 260 15% 91%;
+    --sidebar-ring: 270 69% 61%;
   }
 }
 
@@ -110,3 +110,4 @@ body {
 }
 
 /* Removed .animate-pulse-accent as it was maze specific */
+
