@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react'; // Changed this line
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, Keyboard, RefreshCw, BarChart2 } from 'lucide-react';
@@ -34,7 +34,7 @@ export default function SpeedTyperPage() {
     loadLeaderboard();
   }, [loadLeaderboard, gameStatus]);
 
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = React.useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false); // Changed this line
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const gameTitle = "Speed Typer";
