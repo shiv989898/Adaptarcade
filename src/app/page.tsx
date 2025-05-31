@@ -3,7 +3,7 @@
 
 import GameCard from '@/components/game/GameCard';
 import type { GameMeta } from '@/types/game';
-import { Zap, MousePointerClick, Hammer, Bird } from 'lucide-react';
+import { Zap, MousePointerClick, Hammer } from 'lucide-react';
 
 const games: GameMeta[] = [
   {
@@ -26,13 +26,6 @@ const games: GameMeta[] = [
     description: 'Whack those pesky moles! Click them as they pop up from their holes before they disappear. Fast reactions win!',
     route: '/games/mole-mash',
     icon: Hammer,
-  },
-  {
-    id: 'flappy-bird',
-    name: 'Flappy Bird',
-    description: 'Navigate the bird through pipes. Tap to flap! A test of timing and perseverance.',
-    route: '/games/flappy-bird',
-    icon: Bird,
   },
   // Add more games here as GameMeta objects
 ];
