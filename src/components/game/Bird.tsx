@@ -3,32 +3,38 @@
 
 import type { BirdState } from '@/types/game';
 import { motion } from 'framer-motion';
-import { Bird as BirdIcon } from 'lucide-react'; // Using lucide icon
+import { Bird as BirdIcon } from 'lucide-react';
 
 interface BirdProps {
   bird: BirdState;
-  gameAreaHeight: number; // To constrain bird's visual position if needed
+  gameAreaWidth: number;
+  birdXPositionPercent: number;
 }
 
-const BirdComponent: React.FC<BirdProps> = ({ bird, gameAreaHeight }) => {
-  // Bird is conceptually at a fixed X, but its Y changes.
-  // For rendering, we can place it in the first quarter of the game area width.
-  const birdXPosition = "25%"; 
+const BirdComponent: React.FC<BirdProps> = ({ bird, gameAreaWidth, birdXPositionPercent }) => {
+  const birdX = gameAreaWidth * (birdXPositionPercent / 100);
 
   return (
     <motion.div
-      className="absolute z-10 text-yellow-400"
+      className="absolute z-20" // Ensure bird is above pipes
       style={{
         width: bird.size,
         height: bird.size,
-        left: birdXPosition,
+        left: birdX - bird.size / 2, // Center the bird icon on its X position
         top: bird.y,
-        transform: 'translateX(-50%)', // Center the bird icon on its X position
+        // transformOrigin: 'center center', // For rotation
       }}
-      animate={{ y: bird.y, rotate: bird.velocity > 0 ? Math.min(bird.velocity * 3, 45) : Math.max(bird.velocity * 2, -30) }}
-      transition={{ type: 'spring', stiffness: 500, damping: 30 }} // Smooth out flap/fall
+      animate={{ 
+        y: bird.y, 
+        rotate: bird.rotation // Apply rotation from bird state
+      }}
+      transition={{ type: 'spring', stiffness: 700, damping: 30, mass: 0.5 }} // Smooth out y movement
     >
-      <BirdIcon fill="currentColor" size={bird.size} />
+      <BirdIcon 
+        className="text-yellow-400 fill-yellow-400" 
+        size={bird.size} 
+        strokeWidth={1.5}
+      />
     </motion.div>
   );
 };

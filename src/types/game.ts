@@ -45,16 +45,17 @@ export interface BirdState {
   y: number; // Vertical position
   velocity: number;
   size: number; // Bird's visual size
+  rotation: number; // Bird's rotation in degrees
 }
 
 export interface PipeState {
   id: string;
-  x: number; // Horizontal position
-  topHeight: number; // Height of the top pipe
-  gap: number; // Gap between top and bottom pipe
-  width: number;
+  x: number; // Horizontal position from left edge of game area
+  topHeight: number; // Height of the top pipe segment
+  gap: number; // Vertical gap between top and bottom pipe
+  width: number; // Width of the pipes
 }
 
 export type FlappyBirdGameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
-export const FLAPPY_BIRD_LEADERBOARD_KEY = 'flappyBirdLeaderboard';
+export const FLAPPY_BIRD_LEADERBOARD_KEY = 'flappyBirdLeaderboard_v2'; // Updated key if structure changes significantly
