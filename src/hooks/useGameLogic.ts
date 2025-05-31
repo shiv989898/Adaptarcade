@@ -161,7 +161,10 @@ export const useGameLogic = () => {
         if (despawningTarget && gameStatus === 'playing') {
           if (despawningTarget.type === 'precision') {
               setScore(prev => Math.max(0, prev - Math.round(despawningTarget.points / 10))); // Penalty for missed precision
-              toast({ title: `Missed Precision! -${Math.round(despawningTarget.points / 10)}`, variant: 'destructive', duration: 1000 });
+              // Defer toast to avoid updating Toaster while TargetTapPage might be rendering
+              setTimeout(() => {
+                toast({ title: `Missed Precision! -${Math.round(despawningTarget.points / 10)}`, variant: 'destructive', duration: 1000 });
+              }, 0);
           }
           return currentTargets.filter(t => t.id !== newTargetId);
         }
@@ -347,5 +350,4 @@ export const useGameLogic = () => {
     setCurrentMode, 
   };
 };
-
     
