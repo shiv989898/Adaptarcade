@@ -3,26 +3,26 @@
 
 import GameCard from '@/components/game/GameCard';
 import type { GameMeta } from '@/types/game';
-import { Target, MousePointerClick, Zap } from 'lucide-react'; // Example icons
+import { Zap, MousePointerClick } from 'lucide-react'; // Changed Target to Zap for Target Tap
 
 const games: GameMeta[] = [
   {
     id: 'target-tap',
     name: 'Target Tap',
-    description: 'Test your reflexes! Tap the appearing targets as fast as you can before time runs out.',
+    description: 'Test your reflexes! Tap varied targets as fast as you can. Smaller targets = more points!',
     route: '/games/target-tap',
-    icon: Zap,
+    icon: Zap, // Changed icon
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'abstract target',
+    dataAiHint: 'dynamic targets action', // Updated hint
   },
   {
     id: 'quick-click',
     name: 'Quick Click Challenge',
-    description: 'How many times can you click the button in 5 seconds? A simple test of clicking speed!',
+    description: 'How many times can you click the button in 5 seconds? A simple test of clicking speed with a visual timer!',
     route: '/games/quick-click',
     icon: MousePointerClick,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'abstract clicker',
+    dataAiHint: 'fast click speed', // Updated hint
   },
   // Add more games here as GameMeta objects
 ];

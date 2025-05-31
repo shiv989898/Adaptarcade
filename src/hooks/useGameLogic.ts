@@ -9,17 +9,14 @@ export type GameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
 const GAME_DURATION = 30; // seconds
 const COUNTDOWN_SECONDS = 3;
-const TARGET_POINTS = 10;
-const TARGET_SIZE_MIN = 40; // px
-const TARGET_SIZE_MAX = 70; // px
-// Array of vibrant colors for targets
-const TARGET_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--accent))',
-  '#34D399', // Emerald 500
-  '#F59E0B', // Amber 500
-  '#EC4899', // Pink 500
-  '#8B5CF6', // Violet 500
+
+// Define target tiers: points, size, and color
+const TARGET_TIERS = [
+  { points: 20, size: 40, color: 'hsl(var(--accent))' }, // Hardest: Smallest, highest points, accent color
+  { points: 10, size: 55, color: 'hsl(var(--primary))' }, // Medium: Mid size, standard points, primary color
+  { points: 5,  size: 70, color: '#34D399' },          // Easiest: Largest, lowest points, emerald green
+  { points: 15, size: 45, color: '#F59E0B' }, // Another option: Amber
+  { points: 8,  size: 60, color: '#EC4899' }, // Pink
 ];
 
 
@@ -34,7 +31,7 @@ export const useGameLogic = () => {
   const { toast } = useToast();
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const targetGenerationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const playerNameRef = useRef<string>('Player'); // Could be set via an input later
+  const playerNameRef = useRef<string>('ReflexMaster');
 
   const loadLeaderboard = useCallback(() => {
     setLeaderboardScores(getLeaderboard());
@@ -51,24 +48,19 @@ export const useGameLogic = () => {
 
   const generateTarget = useCallback(() => {
     const newTargetId = `target-${Date.now()}-${Math.random()}`;
-    const targetSize = Math.floor(Math.random() * (TARGET_SIZE_MAX - TARGET_SIZE_MIN + 1)) + TARGET_SIZE_MIN;
-    // Ensure target is fully visible within the board (assuming board padding/border is handled by CSS)
-    // Max x/y should ensure target doesn't go off screen. Assuming 100% is edge.
-    // For a target of size `S`, its center's max percentage `P` is `100 - (S / BoardDimension * 100 / 2)`.
-    // For simplicity here, we'll just use a slightly reduced range like 5-95% for x and y.
-    // A more robust solution would involve knowing game board dimensions.
+    
+    // Randomly select a tier for the new target
+    const tier = TARGET_TIERS[Math.floor(Math.random() * TARGET_TIERS.length)];
+
     const newTarget: TargetConfig = {
       id: newTargetId,
       x: Math.random() * 80 + 10, // % position from left (10% to 90%)
       y: Math.random() * 80 + 10, // % position from top (10% to 90%)
-      size: targetSize,
-      points: TARGET_POINTS,
-      color: TARGET_COLORS[Math.floor(Math.random() * TARGET_COLORS.length)],
+      size: tier.size,
+      points: tier.points,
+      color: tier.color,
     };
-    // For "one target at a time" mode
     setTargets([newTarget]);
-    // For "multiple targets" mode:
-    // setTargets(prevTargets => [...prevTargets, newTarget].slice(-MAX_TARGETS_ON_SCREEN));
   }, []);
 
   const startGame = useCallback(() => {
@@ -77,7 +69,7 @@ export const useGameLogic = () => {
     setTimeLeft(GAME_DURATION);
     setCountdownValue(COUNTDOWN_SECONDS);
     setGameStatus('countdown');
-    setTargets([]); // Clear any old targets
+    setTargets([]); 
 
     let currentCountdown = COUNTDOWN_SECONDS;
     timerIntervalRef.current = setInterval(() => {
@@ -86,40 +78,38 @@ export const useGameLogic = () => {
       if (currentCountdown === 0) {
         clearInterval(timerIntervalRef.current!);
         setGameStatus('playing');
-        generateTarget(); // Generate first target
+        generateTarget(); 
         
-        // Game timer
         timerIntervalRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
             if (prevTime <= 1) {
               clearInterval(timerIntervalRef.current!);
               setGameStatus('gameOver');
+              // Pass the current score directly to addScoreToLeaderboard
               addScoreToLeaderboard({ playerName: playerNameRef.current, score });
               loadLeaderboard();
-              setTargets([]); // Clear targets on game over
+              setTargets([]); 
               return 0;
             }
             return prevTime - 1;
           });
         }, 1000);
-
-        // Optional: continuously generate targets if desired (for more than one target on screen)
-        // targetGenerationIntervalRef.current = setInterval(generateTarget, 2000); 
       }
     }, 1000);
-  }, [clearTimers, generateTarget, loadLeaderboard, score]);
+  }, [clearTimers, generateTarget, loadLeaderboard, score]); // Added score to dependency array for addScoreToLeaderboard
 
   const handleTargetClick = useCallback((id: string, points: number) => {
     if (gameStatus !== 'playing') return;
     setScore(prevScore => prevScore + points);
     setTargets(prevTargets => prevTargets.filter(target => target.id !== id));
     
-    // Generate a new target immediately after one is clicked
     generateTarget();
 
     toast({
       title: `+${points} points!`,
-      duration: 1000,
+      description: points > 10 ? "Great shot!" : (points < 8 ? "Nice one!" : "Target Hit!"),
+      duration: 1200,
+      variant: points > 10 ? "default" : "default", // Could have different variants
     });
   }, [gameStatus, generateTarget, toast]);
 
@@ -127,9 +117,11 @@ export const useGameLogic = () => {
     clearTimers();
     setGameStatus('idle');
     setTargets([]);
+    // Explicitly call startGame if that's the desired behavior of "Play Again" from idle
+    // or let StartScreen handle the startGame call.
+    // For HUD restart, it should probably go to 'idle' then StartScreen.
   }, [clearTimers]);
 
-  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       clearTimers();
@@ -146,7 +138,7 @@ export const useGameLogic = () => {
     startGame,
     restartGame,
     handleTargetClick,
-    loadLeaderboard, // Expose for manual refresh if needed
-    setGameStatus, // Useful for GameOverScreen to navigate
+    loadLeaderboard,
+    setGameStatus, 
   };
 };

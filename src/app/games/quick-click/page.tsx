@@ -4,17 +4,14 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress'; // Import Progress
 import { useQuickClickLogic, type QuickClickScoreEntry } from '@/hooks/useQuickClickLogic';
 import Link from 'next/link';
 import { ArrowLeft, MousePointerClick, Play, RotateCcw, Trophy, Star, Award, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import LeaderboardDialog from '@/components/game/LeaderboardDialog'; // Re-use for consistency
+import LeaderboardDialog from '@/components/game/LeaderboardDialog';
 
-// Static metadata for this page
-// export const metadata = {
-//   title: 'Quick Click Challenge',
-//   description: 'Click as fast as you can in this speedy challenge!',
-// };
+const QUICK_CLICK_GAME_TOTAL_DURATION = 5; // Match with hook
 
 export default function QuickClickPage() {
   const {
@@ -38,10 +35,10 @@ export default function QuickClickPage() {
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return seconds.toFixed(1); // Show tenths of a second if desired, or just seconds
   };
+
+  const timeProgress = (timeLeft / QUICK_CLICK_GAME_TOTAL_DURATION) * 100;
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-background to-secondary/20">
@@ -64,11 +61,11 @@ export default function QuickClickPage() {
               </div>
               <CardTitle className="text-5xl font-headline text-primary">Quick Click</CardTitle>
               <CardDescription className="text-lg text-muted-foreground pt-2">
-                Click the button as many times as you can in 5 seconds!
+                Click the button as many times as you can in {QUICK_CLICK_GAME_TOTAL_DURATION} seconds!
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-6">
-              <Button onClick={startGame} size="lg" className="w-full text-xl py-8 shadow-lg hover:shadow-primary/50">
+              <Button onClick={startGame} size="lg" className="w-full text-xl py-8 shadow-lg hover:shadow-primary/50 transition-all duration-150 hover:scale-105">
                 <Play className="mr-3 h-7 w-7" /> Start Challenge
               </Button>
             </CardContent>
@@ -99,27 +96,32 @@ export default function QuickClickPage() {
             className="flex flex-col items-center gap-8 w-full max-w-lg"
           >
             <Card className="w-full bg-card/80 backdrop-blur-sm shadow-xl">
-              <CardContent className="p-6 flex items-center justify-around text-center">
-                <div>
-                  <p className="text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Star className="h-4 w-4" />CLICKS</p>
-                  <p className="text-4xl font-bold text-primary">{score}</p>
+              <CardContent className="p-6 flex flex-col gap-4 items-center justify-around text-center">
+                <div className="flex items-baseline justify-center gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Star className="h-4 w-4" />CLICKS</p>
+                    <p className="text-5xl font-bold text-primary">{score}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Zap className="h-4 w-4" />TIME LEFT</p>
+                    <p className={`text-5xl font-bold ${timeLeft <= 2 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
+                      {formatTime(timeLeft)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Zap className="h-4 w-4" />TIME</p>
-                  <p className={`text-4xl font-bold ${timeLeft <= 2 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
-                    {formatTime(timeLeft)}
-                  </p>
-                </div>
+                <Progress value={timeProgress} className="w-full h-3 [&>div]:bg-accent" />
               </CardContent>
             </Card>
             
-            <Button 
-              onClick={handleGameButtonClick} 
-              className="w-full h-48 text-3xl font-bold shadow-2xl hover:scale-105 active:scale-95 transform transition-transform duration-150 ease-out bg-primary hover:bg-primary/90"
-              style={{ WebkitTapHighlightColor: 'transparent' }} // For mobile tap feedback
-            >
-              CLICK ME!
-            </Button>
+            <motion.div whileTap={{ scale: 0.97 }} className="w-full">
+              <Button 
+                onClick={handleGameButtonClick} 
+                className="w-full h-48 text-3xl font-bold shadow-2xl hover:scale-105 active:scale-95 transform transition-transform duration-100 ease-out bg-primary hover:bg-primary/90 active:bg-primary/80"
+                style={{ WebkitTapHighlightColor: 'transparent' }} 
+              >
+                CLICK ME!
+              </Button>
+            </motion.div>
              <p className="text-muted-foreground text-center">Keep clicking until the time runs out!</p>
           </motion.div>
         )}
@@ -161,8 +163,8 @@ export default function QuickClickPage() {
       <LeaderboardDialog 
         isOpen={isLeaderboardOpen} 
         onClose={toggleLeaderboard} 
-        scores={leaderboardScores as QuickClickScoreEntry[]} // Cast as ScoreEntry if structure is compatible
-        // If LeaderboardDialog expects a specific structure, you might need to adapt scores or the dialog
+        scores={leaderboardScores as QuickClickScoreEntry[]}
+        gameName="Quick Click Challenge"
       />
     </main>
   );

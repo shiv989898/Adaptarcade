@@ -9,25 +9,26 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { ScoreEntry } from '@/types/game'; // Updated type import
+import type { ScoreEntry } from '@/types/game';
 import { Trophy, Star } from 'lucide-react';
 
 interface LeaderboardDialogProps {
   isOpen: boolean;
   onClose: () => void;
   scores: ScoreEntry[];
+  gameName?: string; // Added to make title dynamic
 }
 
-const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, scores }) => {
+const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, scores, gameName = "Game" }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] bg-card text-card-foreground">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl font-headline">
-            <Trophy className="text-accent h-7 w-7" /> Leaderboard
+            <Trophy className="text-accent h-7 w-7" /> {gameName} Leaderboard
           </DialogTitle>
           <DialogDescription>
-            Top reflex masters of Target Tap!
+            Top scores for {gameName}. Can you beat them?
           </DialogDescription>
         </DialogHeader>
         {scores.length > 0 ? (
@@ -45,7 +46,7 @@ const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, 
                 {scores.map((score, index) => (
                   <TableRow key={score.id} className={index === 0 ? 'bg-accent/10' : ''}>
                     <TableCell className="font-medium">{index + 1}</TableCell>
-                    <TableCell>{score.playerName || 'QuickFinger'}</TableCell>
+                    <TableCell>{score.playerName || 'Champion'}</TableCell>
                     <TableCell className="text-right font-bold">{score.score}</TableCell>
                     {/* <TableCell className="text-right text-xs text-muted-foreground">{new Date(score.date).toLocaleDateString()}</TableCell> */}
                   </TableRow>

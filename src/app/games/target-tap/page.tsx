@@ -32,7 +32,7 @@ export default function TargetTapPage() {
     leaderboardScores,
     countdownValue,
     startGame,
-    restartGame,
+    restartGame, // Use this for HUD restart
     handleTargetClick,
     loadLeaderboard,
   } = useGameLogic();
@@ -46,6 +46,7 @@ export default function TargetTapPage() {
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
   const handlePlayAgainFromGameOver = () => {
+    // startGame will handle the countdown and transition to playing
     startGame();
   };
   
@@ -55,14 +56,14 @@ export default function TargetTapPage() {
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-background to-primary/10">
-      <Button asChild variant="outline" className="absolute top-4 left-4 z-20">
+      <Button asChild variant="outline" className="absolute top-4 left-4 z-30">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Arcade
         </Link>
       </Button>
 
       <AnimatePresence>
-        {gameStatus !== 'idle' && gameStatus !== 'countdown' && (
+        {gameStatus !== 'idle' && gameStatus !== 'countdown' && gameStatus !== 'gameOver' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -73,7 +74,7 @@ export default function TargetTapPage() {
               score={score}
               timeLeft={timeLeft}
               onToggleLeaderboard={toggleLeaderboard}
-              onRestart={restartGame} // This will restart Target Tap
+              onRestart={restartGame} // This will reset to idle, then StartScreen appears
               gameStatus={gameStatus}
             />
           </motion.div>
@@ -81,7 +82,7 @@ export default function TargetTapPage() {
       </AnimatePresence>
 
       {gameStatus === 'idle' && (
-         <StartScreen onStartGame={startGame} title="Target Tap" description="Tap the appearing targets as fast as you can!" />
+         <StartScreen onStartGame={startGame} title="Target Tap" description="Tap the appearing targets as fast as you can! Different targets give different points." />
       )}
 
       {gameStatus === 'countdown' && (
@@ -119,17 +120,12 @@ export default function TargetTapPage() {
         />
       )}
       
-      <LeaderboardDialog isOpen={isLeaderboardOpen} onClose={toggleLeaderboard} scores={leaderboardScores} />
+      <LeaderboardDialog 
+        isOpen={isLeaderboardOpen} 
+        onClose={toggleLeaderboard} 
+        scores={leaderboardScores}
+        gameName="Target Tap"
+      />
     </main>
   );
 }
-
-// For dynamic titles on game pages, you'd typically use a generateMetadata function
-// in a server component or a layout.tsx file for the specific game route.
-// Example (if this file were a server component or in layout.tsx for /games/target-tap):
-// export async function generateMetadata(): Promise<Metadata> {
-//   return {
-//     title: 'Target Tap - Reflex Game',
-//     description: 'Test your reflexes in this fast-paced target tapping game!',
-//   };
-// }
