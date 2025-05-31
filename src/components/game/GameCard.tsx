@@ -17,9 +17,9 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
   return (
     <motion.div
-      whileHover={{ y: -5, boxShadow: "0px 10px 20px hsla(var(--primary-DEFAULT), 0.2)" }}
-      transition={{ type: "spring", stiffness: 300 }}
-      className="w-full max-w-sm"
+      whileHover={{ y: -6, scale: 1.02, boxShadow: "0px 12px 24px hsla(var(--primary), 0.25)" }}
+      transition={{ type: "spring", stiffness: 250, damping: 15 }}
+      className="w-full max-w-sm h-full" // Added h-full for consistent sizing if grid rows are different
     >
       <Card className="h-full shadow-lg flex flex-col bg-card/80 backdrop-blur-sm border-border hover:border-primary/50 transition-colors duration-200">
         {/* CardHeader and Image removed */}

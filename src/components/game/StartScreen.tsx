@@ -9,7 +9,7 @@ interface StartScreenProps {
   onStartGame: () => void;
   title?: string;
   description?: string;
-  instructions?: { title: string; steps: React.ReactNode[] }; // Changed string[] to React.ReactNode[]
+  instructions?: { title: string; steps: React.ReactNode[] };
   icon?: LucideIcon;
   difficultySelector?: React.ReactNode;
 }
@@ -30,17 +30,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
 }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.3 }}
+      exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
+      transition={{ type: "spring", stiffness: 300, damping: 20, mass: 0.8 }}
       className="flex flex-col items-center justify-center min-h-full p-4 w-full max-w-md"
     >
       <Card className="w-full shadow-2xl bg-card/90 backdrop-blur-sm border-primary/30">
         <CardHeader className="text-center pb-4">
-          <div className="inline-flex items-center justify-center mb-4 text-primary animate-pulse">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 10 }}
+            className="inline-flex items-center justify-center mb-4 text-primary"
+          >
             <IconComponent className="h-16 w-16 sm:h-20 sm:w-20" strokeWidth={1.5} />
-          </div>
+          </motion.div>
           <CardTitle className="text-4xl sm:text-5xl font-headline text-primary">{title}</CardTitle>
           <CardDescription className="text-md sm:text-lg text-muted-foreground pt-2 max-w-xs mx-auto">
             {description}
@@ -56,7 +61,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <Button
             onClick={onStartGame}
             size="lg"
-            className="w-full text-lg sm:text-xl py-6 sm:py-8 shadow-lg hover:shadow-primary/50 transition-all duration-300 hover:scale-105 active:scale-100"
+            className="w-full text-lg sm:text-xl py-6 sm:py-8 shadow-lg hover:shadow-primary/50 transition-all duration-300" // Removed hover:scale and active:scale from here as it's now in base button
           >
             <Play className="mr-3 h-6 w-6 sm:h-7 sm:w-7" /> Start Game
           </Button>
