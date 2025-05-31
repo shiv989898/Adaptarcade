@@ -4,38 +4,37 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TargetConfig, ScoreEntry, TargetType, DecoyFrequencyMode } from '@/types/game';
 import { getLeaderboard, addScoreToLeaderboard } from '@/lib/localStorageHelper';
 import { useToast } from '@/hooks/use-toast';
-import { Disc, Focus, ShieldX, Crosshair, AlertOctagon, Circle, Zap } from 'lucide-react';
+import { Disc, Crosshair, ShieldX } from 'lucide-react'; // Simplified icons for now
 
 export type GameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
 const GAME_DURATION = 30; // seconds
 const COUNTDOWN_SECONDS = 3;
-const SCORE_DECAY_FACTOR = 0.75; // Lose up to 75% of points for late clicks on standard targets
+const SCORE_DECAY_FACTOR = 0.75;
 
 interface TargetTypeParams {
   type: TargetType;
   basePoints: number;
   initialSize: number;
-  maxSize: number; // Will be same as initialSize for non-growing targets
+  maxSize: number;
   color: string;
   icon: LucideIcon;
   despawnTimeMultiplier?: number;
 }
 
+const TARGET_PARAMS_BASE_CONFIG: TargetTypeParams[] = [
+  { type: 'standard', basePoints: 15, initialSize: 40, maxSize: 80, color: 'hsl(var(--primary))', icon: Disc, despawnTimeMultiplier: 1 },
+  { type: 'precision', basePoints: 50, initialSize: 20, maxSize: 20, color: 'hsl(var(--accent))', icon: Crosshair, despawnTimeMultiplier: 0.7 },
+  { type: 'decoy', basePoints: -25, initialSize: 40, maxSize: 40, color: 'hsl(var(--destructive))', icon: ShieldX, despawnTimeMultiplier: 1.2 },
+];
+
 interface ModeSettings {
   baseTargetDespawnTime: number;
   minSpawnDelay: number;
   maxSpawnDelay: number;
-  decoyChance: number; // 0 to 1
+  decoyChance: number;
   targetParamsList: TargetTypeParams[];
 }
-
-// Adjusted TARGET_PARAMS_LIST for new sizing rules
-const TARGET_PARAMS_BASE_CONFIG: Omit<TargetTypeParams, 'chance'>[] = [
-  { type: 'standard', basePoints: 15, initialSize: 40, maxSize: 80, color: 'hsl(var(--primary))', icon: Disc, despawnTimeMultiplier: 1 },
-  { type: 'precision', basePoints: 50, initialSize: 20, maxSize: 20, color: 'hsl(var(--accent))', icon: Crosshair, despawnTimeMultiplier: 0.7 }, // Smaller, fixed size
-  { type: 'decoy', basePoints: -25, initialSize: 40, maxSize: 40, color: 'hsl(var(--destructive))', icon: ShieldX, despawnTimeMultiplier: 1.2 }, // Fixed size
-];
 
 const MODE_CONFIG: Record<DecoyFrequencyMode, ModeSettings> = {
   zen: {
@@ -64,7 +63,6 @@ const MODE_CONFIG: Record<DecoyFrequencyMode, ModeSettings> = {
 const getRandomTargetTypeParamsForMode = (mode: DecoyFrequencyMode): TargetTypeParams => {
   const settings = MODE_CONFIG[mode];
   const availableTypes = settings.targetParamsList;
-  
   const randomRoll = Math.random();
 
   if (randomRoll < settings.decoyChance) {
@@ -72,21 +70,18 @@ const getRandomTargetTypeParamsForMode = (mode: DecoyFrequencyMode): TargetTypeP
     if (decoyParams) return decoyParams;
   }
 
-  // Filter out decoys for the next selection step
   const nonDecoyTypes = availableTypes.filter(p => p.type !== 'decoy');
-  const nonDecoyRoll = Math.random();
+  if (nonDecoyTypes.length === 0) return availableTypes[0]; // Should not happen if config is right
 
-  // Example distribution: 60% standard, 40% precision from the non-decoy pool
-  if (nonDecoyRoll < 0.6) {
+  const nonDecoyRoll = Math.random();
+  if (nonDecoyRoll < 0.6 || nonDecoyTypes.length === 1) { // 60% chance for standard, or if only standard is left
      const standardParams = nonDecoyTypes.find(p => p.type === 'standard');
      if (standardParams) return standardParams;
   } else {
      const precisionParams = nonDecoyTypes.find(p => p.type === 'precision');
      if (precisionParams) return precisionParams;
   }
-  
-  // Fallback to standard if something goes wrong or if only standard is left
-  return (nonDecoyTypes.find(p => p.type === 'standard') || nonDecoyTypes[0] || availableTypes[0]);
+  return (nonDecoyTypes.find(p => p.type === 'standard') || nonDecoyTypes[0]);
 };
 
 
@@ -100,19 +95,24 @@ export const useGameLogic = () => {
   const [currentMode, setCurrentMode] = useState<DecoyFrequencyMode>('challenging');
 
   const { toast } = useToast();
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
-  const targetSpawnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const gameTimerRef = useRef<NodeJS.Timeout | null>(null); // For 1-second game clock
+  const targetGrowthTimerRef = useRef<NodeJS.Timeout | null>(null); // For target visual updates
+  const targetSpawnTimeoutRef = useRef<NodeJS.Timeout | null>(null); // For scheduling next target
   const targetDespawnTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const playerNameRef = useRef<string>('PrecisionPro');
+  const playerNameRef = useRef<string>('PrecisionPro'); // Example player name
 
+  // Refs for functions to avoid stale closures in timeouts/intervals
   const generateTargetFnRef = useRef<() => void>();
   const scheduleNextTargetFnRef = useRef<() => void>();
 
   const clearAllTimers = useCallback(() => {
-    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
+    if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+    if (targetGrowthTimerRef.current) clearInterval(targetGrowthTimerRef.current);
     if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
     targetDespawnTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
     targetDespawnTimeoutRefs.current.clear();
+    // Note: Countdown timer is cleared locally in startGame
   }, []);
 
   const removeTarget = useCallback((targetId: string) => {
@@ -136,11 +136,11 @@ export const useGameLogic = () => {
 
     const newTarget: TargetConfig = {
       id: newTargetId,
-      x: Math.random() * 85 + 7.5,
-      y: Math.random() * 85 + 7.5,
+      x: Math.random() * 85 + 7.5, // % position from left, with margin
+      y: Math.random() * 85 + 7.5, // % position from top, with margin
       initialSize: targetParams.initialSize,
-      maxSize: targetParams.maxSize, // Store max size
-      currentSize: targetParams.initialSize, // Start at initial size
+      maxSize: targetParams.maxSize,
+      currentSize: targetParams.initialSize,
       points: targetParams.basePoints,
       color: targetParams.color,
       type: targetParams.type,
@@ -151,10 +151,10 @@ export const useGameLogic = () => {
     setTargets(prevTargets => [...prevTargets, newTarget]);
 
     const despawnTimeout = setTimeout(() => {
-      if (gameStatus === 'playing') {
+      if (gameStatus === 'playing') { // Check status again inside timeout
         removeTarget(newTargetId);
-        if (targetParams.type === 'precision') { // Penalty only for missing precision
-            setScore(prev => Math.max(0, prev - Math.round(targetParams.basePoints / 10)));
+        if (targetParams.type === 'precision') {
+            setScore(prev => Math.max(0, prev - Math.round(targetParams.basePoints / 10))); // Penalty for missing precision
             toast({ title: `Missed Precision!`, variant: 'destructive', duration: 1000 });
         }
       }
@@ -172,38 +172,28 @@ export const useGameLogic = () => {
     const spawnDelay = Math.random() * (config.maxSpawnDelay - config.minSpawnDelay) + config.minSpawnDelay;
 
     targetSpawnTimeoutRef.current = setTimeout(() => {
-       if (targets.length < 8) {
-         if (generateTargetFnRef.current) {
-           generateTargetFnRef.current();
-         }
+       if (targets.length < 8 && generateTargetFnRef.current) { // Limit concurrent targets
+         generateTargetFnRef.current();
        }
-       if (scheduleNextTargetFnRef.current) {
+       if (scheduleNextTargetFnRef.current) { // Schedule next one
         scheduleNextTargetFnRef.current();
        }
     }, spawnDelay);
   }, [gameStatus, currentMode, targets.length]);
 
-
-  useEffect(() => {
-    generateTargetFnRef.current = generateTarget;
-  }, [generateTarget]);
-
-  useEffect(() => {
-    scheduleNextTargetFnRef.current = scheduleNextTarget;
-  }, [scheduleNextTarget]);
-
+  // Update function refs
+  useEffect(() => { generateTargetFnRef.current = generateTarget; }, [generateTarget]);
+  useEffect(() => { scheduleNextTargetFnRef.current = scheduleNextTarget; }, [scheduleNextTarget]);
 
   const loadLeaderboard = useCallback(() => {
     setLeaderboardScores(getLeaderboard());
   }, []);
 
-  useEffect(() => {
-    loadLeaderboard();
-  }, [loadLeaderboard]);
+  useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
 
   const startGame = useCallback((mode: DecoyFrequencyMode) => {
-    setCurrentMode(mode);
     clearAllTimers();
+    setCurrentMode(mode);
     setScore(0);
     setTimeLeft(GAME_DURATION);
     setCountdownValue(COUNTDOWN_SECONDS);
@@ -218,53 +208,65 @@ export const useGameLogic = () => {
         clearInterval(countdownTimerId);
         setGameStatus('playing');
         
-        gameLoopRef.current = setInterval(() => {
+        // Start 1-second game timer for timeLeft and game over check
+        gameTimerRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
-            if (prevTime <= 1) {
-              clearAllTimers();
-              setGameStatus('gameOver');
-              addScoreToLeaderboard({ playerName: playerNameRef.current, score, mode: currentMode });
-              loadLeaderboard();
-              setTargets([]);
+            if (prevTime <= 1) { // Game ends when timeLeft hits 1 then goes to 0
+              clearAllTimers(); // Stop all game activity
+              setGameStatus('gameOver'); // This will trigger the useEffect for gameOver
               return 0;
             }
             return prevTime - 1;
           });
+        }, 1000);
 
-          // Update target sizes - only for 'standard' type
+        // Start target growth timer (e.g., 30 FPS)
+        targetGrowthTimerRef.current = setInterval(() => {
           setTargets(prevTs =>
             prevTs.map(t => {
               if (t.type === 'standard') {
                 const age = Date.now() - t.spawnTime;
-                const growthRatio = Math.min(1, age / (t.despawnTime * 0.9));
+                const growthRatio = Math.min(1, age / (t.despawnTime * 0.9)); // *0.9 to reach max size a bit before despawn
                 const newSize = t.initialSize + (t.maxSize - t.initialSize) * growthRatio;
-                return { ...t, currentSize: Math.max(t.initialSize, Math.min(newSize, t.maxSize)) }; // Clamp size
+                return { ...t, currentSize: Math.max(t.initialSize, Math.min(newSize, t.maxSize)) };
               }
-              // For other types, currentSize remains initialSize (already set at creation)
-              return t; 
+              return t;
             })
           );
-        }, 1000 / 30); // Update growth ~30fps for smoother visual
+        }, 1000 / 30); // Update growth ~30fps
       }
     }, 1000);
-  }, [clearAllTimers, loadLeaderboard]);
+  }, [clearAllTimers /* loadLeaderboard is not needed here, it's called on gameOver */]);
 
 
+  // Effect to handle game state changes (playing, gameOver, idle)
   useEffect(() => {
     if (gameStatus === 'playing') {
       if (scheduleNextTargetFnRef.current) {
         scheduleNextTargetFnRef.current();
       }
-    } else {
+    } else { // Covers 'gameOver', 'idle', 'countdown'
       if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
-      if (gameStatus === 'gameOver' || gameStatus === 'idle') {
-        setTargets([]);
-      }
     }
+    
+    if (gameStatus === 'gameOver') {
+      // Score saving logic
+      addScoreToLeaderboard({ playerName: playerNameRef.current, score, mode: currentMode });
+      loadLeaderboard(); // Refresh leaderboard state
+      setTargets([]); // Clear targets from the board visually
+    }
+    
+    if (gameStatus === 'idle') {
+      setTargets([]); // Ensure targets are cleared when returning to idle
+    }
+
+    // Cleanup if the component unmounts or gameStatus changes away from 'playing'
     return () => {
-        if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
+        if (gameStatus !== 'playing' && targetSpawnTimeoutRef.current) {
+             clearTimeout(targetSpawnTimeoutRef.current);
+        }
     }
-  }, [gameStatus]);
+  }, [gameStatus, score, currentMode, loadLeaderboard]); // Added dependencies for gameOver logic
 
   const handleTargetClick = useCallback((id: string) => {
     if (gameStatus !== 'playing') return;
@@ -275,47 +277,34 @@ export const useGameLogic = () => {
     removeTarget(id);
 
     let pointsAwarded = target.points;
-
-    if (target.type === 'standard') { // Time-sensitive scoring only for standard
+    if (target.type === 'standard') {
       const age = Date.now() - target.spawnTime;
-      const ageRatio = Math.min(1, age / target.despawnTime); // How far into its lifespan it was clicked
+      const ageRatio = Math.min(1, age / target.despawnTime);
       pointsAwarded = Math.round(target.points * (1 - ageRatio * SCORE_DECAY_FACTOR));
-      // Ensure some minimum points for standard targets if not clicked instantly and points are positive
       if (target.points > 0 && pointsAwarded <= 0) {
         pointsAwarded = Math.max(1, Math.round(target.points * 0.1)); 
       }
     }
-    // For 'precision' and 'decoy', pointsAwarded is already target.points (their fixed value)
     
     setScore(prevScore => Math.max(0, prevScore + pointsAwarded));
 
     if (target.type === 'decoy') {
-      toast({
-        title: `Decoy Hit! ${pointsAwarded} points!`,
-        variant: 'destructive',
-        duration: 1500,
-      });
+      toast({ title: `Decoy Hit! ${pointsAwarded} points!`, variant: 'destructive', duration: 1500 });
     } else if (target.type === 'precision') {
-       toast({
-        title: `Precision! +${pointsAwarded} points!`,
-        duration: 1200,
-      });
+       toast({ title: `Precision! +${pointsAwarded} points!`, duration: 1200 });
     } else { // Standard
-      toast({
-        title: `+${pointsAwarded} points!`,
-        duration: 1000,
-      });
+      toast({ title: `+${pointsAwarded} points!`, duration: 1000 });
     }
   }, [gameStatus, toast, removeTarget, targets]);
 
   const restartGame = useCallback(() => {
     clearAllTimers();
     setGameStatus('idle');
-    setTargets([]);
-    setScore(0);
-    setTimeLeft(GAME_DURATION);
+    // State resets like score, timeLeft will happen when startGame is called again
+    // or handled by idle state logic
   }, [clearAllTimers]);
 
+  // Global cleanup for all timers when the hook unmounts
   useEffect(() => {
     return () => {
       clearAllTimers();
@@ -334,8 +323,8 @@ export const useGameLogic = () => {
     restartGame,
     handleTargetClick,
     loadLeaderboard,
-    setGameStatus,
-    setCurrentMode,
+    setGameStatus, // Expose if needed for external control, e.g., debug
+    setCurrentMode, // Expose for UI to set mode before game starts
   };
 };
 
