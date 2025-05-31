@@ -11,7 +11,7 @@ import { useGameLogic } from '@/hooks/useGameLogic';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Zap, Crosshair, ShieldX, Disc } from 'lucide-react';
+import { ArrowLeft, Zap, Crosshair, ShieldX, Disc } from 'lucide-react'; // Disc imported
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import type { Difficulty, ScoreEntry } from '@/types/game';
@@ -52,16 +52,16 @@ export default function TargetTapPage() {
     setIsLeaderboardOpen(true);
   };
 
-  const gameTitle = "Precision Tap"; // Renamed for emphasis
+  const gameTitle = "Precision Tap";
   const gameDescription = "Test your accuracy and speed! Hit valuable targets, avoid decoys. Points are awarded based on precision.";
   const gameInstructions = {
     title: "How to Tap with Precision:",
     steps: [
-      "Select your difficulty.",
-      "Blue/Purple targets (<Disc className='inline h-4 w-4 text-primary'/>): Standard points.",
-      "Bright Green, smaller targets (<Crosshair className='inline h-4 w-4 text-accent'/>): High points! Hit them fast.",
-      "Red decoy targets (<ShieldX className='inline h-4 w-4 text-destructive'/>): Deduct points! Do NOT tap.",
-      "Score as high as you can before time runs out!"
+      <>Select your difficulty.</>,
+      <>Blue/Purple targets (<Disc className='inline h-3 w-3 text-primary relative top-[-1px]' />): Standard points.</>,
+      <>Bright Green, smaller targets (<Crosshair className='inline h-3 w-3 text-accent relative top-[-1px]' />): High points! Hit them fast.</>,
+      <>Red decoy targets (<ShieldX className='inline h-3 w-3 text-destructive relative top-[-1px]' />): Deduct points! Do NOT tap.</>,
+      <>Score as high as you can before time runs out!</>
     ]
   };
 
@@ -120,7 +120,7 @@ export default function TargetTapPage() {
             title={gameTitle}
             description={gameDescription}
             instructions={gameInstructions}
-            icon={Zap} // Main icon can still be Zap
+            icon={Zap}
             difficultySelector={difficultySelectorUI}
           />
       )}

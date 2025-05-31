@@ -9,14 +9,14 @@ interface StartScreenProps {
   onStartGame: () => void;
   title?: string;
   description?: string;
-  instructions?: { title: string; steps: string[] };
+  instructions?: { title: string; steps: React.ReactNode[] }; // Changed string[] to React.ReactNode[]
   icon?: LucideIcon;
-  difficultySelector?: React.ReactNode; // New prop for difficulty UI
+  difficultySelector?: React.ReactNode;
 }
 
-const StartScreen: React.FC<StartScreenProps> = ({ 
-  onStartGame, 
-  title = "Game Title", 
+const StartScreen: React.FC<StartScreenProps> = ({
+  onStartGame,
+  title = "Game Title",
   description = "Game description here.",
   instructions = {
     title: "How to Play:",
@@ -29,7 +29,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   difficultySelector,
 }) => {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -53,18 +53,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {difficultySelector}
             </div>
           )}
-          <Button 
-            onClick={onStartGame} 
-            size="lg" 
+          <Button
+            onClick={onStartGame}
+            size="lg"
             className="w-full text-lg sm:text-xl py-6 sm:py-8 shadow-lg hover:shadow-primary/50 transition-all duration-300 hover:scale-105 active:scale-100"
           >
             <Play className="mr-3 h-6 w-6 sm:h-7 sm:w-7" /> Start Game
           </Button>
-          <div className="text-xs sm:text-sm text-center text-muted-foreground bg-muted/50 p-3 rounded-md w-full">
-            <p className="font-bold text-foreground/90 mb-1">{instructions.title}</p>
-            {instructions.steps.map((step, index) => (
-              <p key={index}>{step}</p>
-            ))}
+          <div className="text-xs sm:text-sm text-left text-muted-foreground bg-muted/50 p-4 rounded-md w-full space-y-1">
+            <p className="font-bold text-foreground/90 mb-2 text-center">{instructions.title}</p>
+            <ul className="list-disc list-inside space-y-1.5 pl-1 sm:pl-2">
+              {instructions.steps.map((step, index) => (
+                <li key={index} className="leading-snug">{step}</li>
+              ))}
+            </ul>
           </div>
         </CardContent>
       </Card>
