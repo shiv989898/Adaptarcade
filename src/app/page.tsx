@@ -13,7 +13,7 @@ const games: GameMeta[] = [
     route: '/games/target-tap',
     icon: Zap,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'glowing targets',
+    dataAiHint: 'glowing crosshair targets', // More specific hint
   },
   {
     id: 'quick-click',
@@ -22,16 +22,16 @@ const games: GameMeta[] = [
     route: '/games/quick-click',
     icon: MousePointerClick,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'speed clicking',
+    dataAiHint: 'glowing mouse cursor', // More specific hint
   },
   {
     id: 'mole-mash',
     name: 'Mole Mash',
     description: 'Whack those pesky moles! Click them as they pop up from their holes before they disappear. Fast reactions win!',
     route: '/games/mole-mash',
-    icon: Hammer, // Example icon
+    icon: Hammer,
     thumbnailUrl: 'https://placehold.co/600x400.png',
-    dataAiHint: 'cartoon mole game',
+    dataAiHint: 'cartoon mole whacking', // More specific hint
   },
   // Add more games here as GameMeta objects
 ];

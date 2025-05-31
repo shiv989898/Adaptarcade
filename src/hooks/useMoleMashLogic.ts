@@ -15,24 +15,24 @@ const GRID_SIZE = 3; // 3x3 grid
 interface MoleMashDifficultySettings {
   moleVisibleMinDuration: number;
   moleVisibleMaxDuration: number;
-  moleSpawnDelay: number;
+  moleSpawnDelay: number; // Time before a new mole appears after one is hit or disappears
 }
 
 const MOLE_MASH_DIFFICULTY_CONFIG: Record<Difficulty, MoleMashDifficultySettings> = {
   easy: {
-    moleVisibleMinDuration: 1000,
-    moleVisibleMaxDuration: 2000,
-    moleSpawnDelay: 300,
+    moleVisibleMinDuration: 800, // Moles stay visible a bit longer
+    moleVisibleMaxDuration: 1600,
+    moleSpawnDelay: 350, // Slower mole respawn
   },
   medium: {
-    moleVisibleMinDuration: 700,
-    moleVisibleMaxDuration: 1500,
-    moleSpawnDelay: 200,
+    moleVisibleMinDuration: 550, // Moles are quicker
+    moleVisibleMaxDuration: 1200,
+    moleSpawnDelay: 180, // Faster respawn
   },
   hard: {
-    moleVisibleMinDuration: 400,
-    moleVisibleMaxDuration: 900,
-    moleSpawnDelay: 100,
+    moleVisibleMinDuration: 300, // Very quick moles
+    moleVisibleMaxDuration: 650,
+    moleSpawnDelay: 80, // Very fast respawn
   },
 };
 
@@ -51,7 +51,7 @@ export const useMoleMashLogic = () => {
 
   const { toast } = useToast();
   const gameTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const moleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const moleTimerRef = useRef<NodeJS.Timeout | null>(null); // Controls individual mole lifetime and next spawn
   const playerNameRef = useRef<string>('MoleMasher');
 
   const loadLeaderboard = useCallback(() => {
@@ -72,14 +72,20 @@ export const useMoleMashLogic = () => {
   const spawnMole = useCallback(() => {
     if (gameStatus !== 'playing') return;
 
-    if (moleTimerRef.current) clearTimeout(moleTimerRef.current);
+    if (moleTimerRef.current) clearTimeout(moleTimerRef.current); // Clear previous mole's despawn/respawn timer
 
     const { moleVisibleMinDuration, moleVisibleMaxDuration, moleSpawnDelay } = MOLE_MASH_DIFFICULTY_CONFIG[currentDifficulty];
 
-    const availableHoles = moles.map((_, i) => i).filter(i => i !== activeMoleIndex);
-    if (availableHoles.length === 0) {
-        setActiveMoleIndex(null);
-        setMoles(prev => prev.map(mole => ({ ...mole, hasMole: false })));
+    // Hide any currently active mole before showing a new one
+    if (activeMoleIndex !== null) {
+      setMoles(prevMoles => 
+        prevMoles.map((mole, idx) => idx === activeMoleIndex ? { ...mole, hasMole: false } : mole)
+      );
+      setActiveMoleIndex(null);
+    }
+
+    const availableHoles = moles.map((_, i) => i); // All holes are potentially available
+    if (availableHoles.length === 0) { // Should not happen in a fixed grid
         if (gameStatus === 'playing') moleTimerRef.current = setTimeout(spawnMole, moleSpawnDelay);
         return;
     }
@@ -92,10 +98,14 @@ export const useMoleMashLogic = () => {
     setActiveMoleIndex(randomIndex);
 
     const moleDuration = Math.random() * (moleVisibleMaxDuration - moleVisibleMinDuration) + moleVisibleMinDuration;
+    
+    // This timer handles both the mole disappearing AND scheduling the next spawn
     moleTimerRef.current = setTimeout(() => {
       if (gameStatus === 'playing') {
+        // Make current mole disappear
         setMoles(prevMoles => prevMoles.map((mole, idx) => idx === randomIndex ? { ...mole, hasMole: false } : mole));
         setActiveMoleIndex(null);
+        // Schedule next mole spawn after moleSpawnDelay
         moleTimerRef.current = setTimeout(spawnMole, moleSpawnDelay);
       }
     }, moleDuration);
@@ -120,9 +130,6 @@ export const useMoleMashLogic = () => {
         clearInterval(gameTimerRef.current!);
         setGameStatus('playing');
         
-        // Initial spawn call is handled by useEffect watching gameStatus and activeMoleIndex
-        // This ensures spawnMole uses the latest currentDifficulty
-        
         gameTimerRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
             if (prevTime <= 1) {
@@ -136,7 +143,7 @@ export const useMoleMashLogic = () => {
                   playerName: playerNameRef.current,
                   score: finalScore,
                   date: new Date().toISOString(),
-                  difficulty: currentDifficulty, // Save difficulty with score
+                  difficulty: currentDifficulty,
                 };
                 currentScores.push(newEntry);
                 currentScores.sort((a,b) => b.score - a.score);
@@ -153,12 +160,12 @@ export const useMoleMashLogic = () => {
         }, 1000);
       }
     }, 1000);
-  }, [clearTimers, loadLeaderboard, score]); // spawnMole removed as it's called by effect
+  }, [clearTimers, loadLeaderboard, score]); 
 
   const handleMoleClick = useCallback((index: number) => {
-    if (gameStatus !== 'playing' || index !== activeMoleIndex) return;
+    if (gameStatus !== 'playing' || index !== activeMoleIndex || !moles[index]?.hasMole) return;
 
-    if (moleTimerRef.current) clearTimeout(moleTimerRef.current);
+    if (moleTimerRef.current) clearTimeout(moleTimerRef.current); // Clear current mole's timer
     
     setScore(prevScore => prevScore + 1);
     setMoles(prevMoles => 
@@ -172,8 +179,9 @@ export const useMoleMashLogic = () => {
       duration: 1000,
     });
     const { moleSpawnDelay } = MOLE_MASH_DIFFICULTY_CONFIG[currentDifficulty];
-    moleTimerRef.current = setTimeout(spawnMole, moleSpawnDelay);
-  }, [gameStatus, activeMoleIndex, spawnMole, toast, currentDifficulty]);
+    // Immediately schedule the next mole after a hit, following the spawn delay
+    moleTimerRef.current = setTimeout(spawnMole, moleSpawnDelay); 
+  }, [gameStatus, activeMoleIndex, moles, spawnMole, toast, currentDifficulty]);
 
   const restartGame = useCallback(() => {
     clearTimers();
@@ -189,12 +197,22 @@ export const useMoleMashLogic = () => {
   }, [clearTimers]);
   
   useEffect(() => {
-    if (gameStatus === 'playing' && activeMoleIndex === null) {
+    if (gameStatus === 'playing') {
+      // Initial spawn when game starts
       const { moleSpawnDelay } = MOLE_MASH_DIFFICULTY_CONFIG[currentDifficulty];
-      const initialSpawnTimeout = setTimeout(spawnMole, moleSpawnDelay);
+      const initialSpawnTimeout = setTimeout(spawnMole, moleSpawnDelay); // Use a small delay for the very first mole
+      
+      // Store this timeout in moleTimerRef so it can be cleared if game ends prematurely
+      moleTimerRef.current = initialSpawnTimeout; 
+      
       return () => clearTimeout(initialSpawnTimeout);
+    } else if (gameStatus !== 'playing') {
+        // Ensure moles are cleared and timers stopped if game status changes from playing
+        clearTimers();
+        setActiveMoleIndex(null);
+        setMoles(prev => prev.map(m => ({...m, hasMole: false})));
     }
-  }, [gameStatus, spawnMole, activeMoleIndex, currentDifficulty]);
+  }, [gameStatus, spawnMole, currentDifficulty, clearTimers]);
 
 
   return {
