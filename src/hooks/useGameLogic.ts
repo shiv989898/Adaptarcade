@@ -1,63 +1,81 @@
 
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { TargetConfig, ScoreEntry, Difficulty } from '@/types/game';
+import type { TargetConfig, ScoreEntry, Difficulty, TargetType } from '@/types/game';
 import { getLeaderboard, addScoreToLeaderboard } from '@/lib/localStorageHelper';
 import { useToast } from '@/hooks/use-toast';
+import { Disc, Focus, ShieldX, Crosshair, AlertOctagon, Circle } from 'lucide-react'; // Icons for targets
 
 export type GameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
 const GAME_DURATION = 30; // seconds
 const COUNTDOWN_SECONDS = 3;
 
-interface TargetTierParams {
+interface TargetTypeParams {
+  type: TargetType;
   points: number;
-  size: number; // visual size
+  size: number;
   color: string;
+  icon: LucideIcon;
+  chance: number; // Relative probability of this type spawning
+  despawnTimeMultiplier?: number; // Multiplier for default despawn time
 }
 
 interface DifficultySettings {
-  targetDespawnTime: number;
+  defaultTargetDespawnTime: number;
   minSpawnDelay: number;
   maxSpawnDelay: number;
-  targetTiers: TargetTierParams[];
+  targetTypes: TargetTypeParams[];
 }
 
 const DIFFICULTY_CONFIG: Record<Difficulty, DifficultySettings> = {
   easy: {
-    targetDespawnTime: 3500,
-    minSpawnDelay: 800,
-    maxSpawnDelay: 1600,
-    targetTiers: [
-      { points: 5,  size: 80, color: '#34D399' }, 
-      { points: 8,  size: 70, color: '#EC4899' },
-      { points: 10, size: 65, color: 'hsl(var(--primary))' },
+    defaultTargetDespawnTime: 3000,
+    minSpawnDelay: 700,
+    maxSpawnDelay: 1400,
+    targetTypes: [
+      { type: 'standard', points: 10, size: 70, color: 'hsl(var(--primary))', icon: Disc, chance: 70 },
+      { type: 'precision', points: 30, size: 40, color: 'hsl(var(--accent))', icon: Crosshair, chance: 20, despawnTimeMultiplier: 0.7 },
+      { type: 'decoy', points: -20, size: 65, color: 'hsl(var(--destructive))', icon: ShieldX, chance: 10, despawnTimeMultiplier: 1.2 },
     ],
   },
   medium: {
-    targetDespawnTime: 2500, 
+    defaultTargetDespawnTime: 2200,
     minSpawnDelay: 400,
-    maxSpawnDelay: 800,
-    targetTiers: [
-      { points: 20, size: 45, color: 'hsl(var(--accent))' }, 
-      { points: 10, size: 60, color: 'hsl(var(--primary))' },
-      { points: 5,  size: 75, color: '#34D399' },
-      { points: 15, size: 50, color: '#F59E0B' },
-      { points: 8,  size: 65, color: '#EC4899' },
+    maxSpawnDelay: 900,
+    targetTypes: [
+      { type: 'standard', points: 10, size: 60, color: 'hsl(var(--primary))', icon: Disc, chance: 55 },
+      { type: 'precision', points: 40, size: 35, color: 'hsl(var(--accent))', icon: Crosshair, chance: 25, despawnTimeMultiplier: 0.6 },
+      { type: 'decoy', points: -25, size: 60, color: 'hsl(var(--destructive))', icon: AlertOctagon, chance: 20, despawnTimeMultiplier: 1.1 },
     ],
   },
   hard: {
-    targetDespawnTime: 1500, 
-    minSpawnDelay: 200,    
-    maxSpawnDelay: 450,
-    targetTiers: [
-      { points: 25, size: 35, color: 'hsl(var(--accent))' }, 
-      { points: 20, size: 40, color: 'hsl(var(--destructive))' },
-      { points: 15, size: 45, color: '#F59E0B' },
-      { points: 10, size: 50, color: 'hsl(var(--primary))' },
+    defaultTargetDespawnTime: 1600,
+    minSpawnDelay: 250,
+    maxSpawnDelay: 600,
+    targetTypes: [
+      { type: 'standard', points: 5, size: 50, color: 'hsl(var(--primary))', icon: Circle, chance: 40 }, // Lower points for standard
+      { type: 'precision', points: 50, size: 30, color: 'hsl(var(--accent))', icon: Focus, chance: 30, despawnTimeMultiplier: 0.5 },
+      { type: 'decoy', points: -30, size: 55, color: 'hsl(var(--destructive))', icon: ShieldX, chance: 30, despawnTimeMultiplier: 1.0 },
     ],
   },
 };
+
+// Helper to select a target type based on weighted chances
+const getRandomTargetTypeParams = (difficulty: Difficulty): TargetTypeParams => {
+  const settings = DIFFICULTY_CONFIG[difficulty];
+  const totalChance = settings.targetTypes.reduce((sum, type) => sum + type.chance, 0);
+  let randomRoll = Math.random() * totalChance;
+
+  for (const typeParam of settings.targetTypes) {
+    if (randomRoll < typeParam.chance) {
+      return typeParam;
+    }
+    randomRoll -= typeParam.chance;
+  }
+  return settings.targetTypes[0]; // Fallback, should ideally not be reached if chances sum up correctly
+};
+
 
 export const useGameLogic = () => {
   const [score, setScore] = useState(0);
@@ -71,9 +89,8 @@ export const useGameLogic = () => {
   const { toast } = useToast();
   const gameTimerRef = useRef<NodeJS.Timeout | null>(null);
   const targetSpawnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const targetDespawnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const currentTargetIdRef = useRef<string | null>(null);
-  const playerNameRef = useRef<string>('ReflexChampion');
+  const targetDespawnTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const playerNameRef = useRef<string>('PrecisionPro');
 
   const generateTargetFnRef = useRef<() => void>();
   const scheduleNextTargetFnRef = useRef<() => void>();
@@ -81,52 +98,76 @@ export const useGameLogic = () => {
   const clearAllTimers = useCallback(() => {
     if (gameTimerRef.current) clearInterval(gameTimerRef.current);
     if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
-    if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
+    targetDespawnTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+    targetDespawnTimeoutRefs.current.clear();
+  }, []);
+
+  const removeTarget = useCallback((targetId: string) => {
+    setTargets(prevTargets => prevTargets.filter(t => t.id !== targetId));
+    if (targetDespawnTimeoutRefs.current.has(targetId)) {
+      clearTimeout(targetDespawnTimeoutRefs.current.get(targetId)!);
+      targetDespawnTimeoutRefs.current.delete(targetId);
+    }
   }, []);
 
   const generateTarget = useCallback(() => {
     if (gameStatus !== 'playing') return;
 
     const newTargetId = `target-${Date.now()}-${Math.random()}`;
-    currentTargetIdRef.current = newTargetId;
+    const difficultySettings = DIFFICULTY_CONFIG[currentDifficulty];
+    const targetParams = getRandomTargetTypeParams(currentDifficulty);
 
-    const config = DIFFICULTY_CONFIG[currentDifficulty];
-    const tierParams = config.targetTiers[Math.floor(Math.random() * config.targetTiers.length)];
+    const despawnTime = targetParams.despawnTimeMultiplier
+      ? difficultySettings.defaultTargetDespawnTime * targetParams.despawnTimeMultiplier
+      : difficultySettings.defaultTargetDespawnTime;
 
     const newTarget: TargetConfig = {
       id: newTargetId,
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 80 + 10,
-      ...tierParams,
+      x: Math.random() * 85 + 7.5, // Keep within bounds better
+      y: Math.random() * 85 + 7.5,
+      size: targetParams.size,
+      points: targetParams.points,
+      color: targetParams.color,
+      type: targetParams.type,
+      icon: targetParams.icon,
+      despawnTime: despawnTime,
     };
-    setTargets([newTarget]);
+    setTargets(prevTargets => [...prevTargets, newTarget]);
 
-    if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
-    targetDespawnTimeoutRef.current = setTimeout(() => {
-      if (currentTargetIdRef.current === newTargetId && gameStatus === 'playing') {
-        setTargets([]);
-        currentTargetIdRef.current = null;
-        if (scheduleNextTargetFnRef.current) {
-          scheduleNextTargetFnRef.current();
+    const despawnTimeout = setTimeout(() => {
+      if (gameStatus === 'playing') { // Check status again before removing
+        removeTarget(newTargetId);
+        if (targetParams.type === 'precision') { // Small penalty for missing precision targets
+            setScore(prev => prev - Math.round(targetParams.points / 5));
+            toast({ title: `Missed Precision! -${Math.round(targetParams.points / 5)}`, variant: 'destructive', duration: 1000 });
         }
+        // No penalty for missing standard or decoys (decoys disappearing is good)
       }
-    }, config.targetDespawnTime);
-  }, [gameStatus, currentDifficulty]);
+    }, despawnTime);
+    targetDespawnTimeoutRefs.current.set(newTargetId, despawnTimeout);
+
+  }, [gameStatus, currentDifficulty, removeTarget, toast]);
+
 
   const scheduleNextTarget = useCallback(() => {
     if (gameStatus !== 'playing') return;
-
     if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
 
     const config = DIFFICULTY_CONFIG[currentDifficulty];
     const spawnDelay = Math.random() * (config.maxSpawnDelay - config.minSpawnDelay) + config.minSpawnDelay;
 
     targetSpawnTimeoutRef.current = setTimeout(() => {
-      if (generateTargetFnRef.current) {
-        generateTargetFnRef.current();
-      }
+       if (targets.length < 5) { // Limit max active targets on screen
+         if (generateTargetFnRef.current) {
+           generateTargetFnRef.current();
+         }
+       }
+       if (scheduleNextTargetFnRef.current) { // Always schedule the next check
+        scheduleNextTargetFnRef.current();
+       }
     }, spawnDelay);
-  }, [gameStatus, currentDifficulty]);
+  }, [gameStatus, currentDifficulty, targets.length]);
+
 
   useEffect(() => {
     generateTargetFnRef.current = generateTarget;
@@ -152,7 +193,6 @@ export const useGameLogic = () => {
     setTimeLeft(GAME_DURATION);
     setCountdownValue(COUNTDOWN_SECONDS);
     setTargets([]);
-    currentTargetIdRef.current = null;
     setGameStatus('countdown');
 
     let currentCountdown = COUNTDOWN_SECONDS;
@@ -161,18 +201,16 @@ export const useGameLogic = () => {
       setCountdownValue(currentCountdown);
       if (currentCountdown === 0) {
         clearInterval(countdownTimer);
-        setGameStatus('playing'); 
+        setGameStatus('playing');
 
         const mainGameTimer = setInterval(() => {
           setTimeLeft(prevTime => {
             if (prevTime <= 1) {
               clearAllTimers();
               setGameStatus('gameOver');
-              // Use the difficulty state at the moment of game over.
               addScoreToLeaderboard({ playerName: playerNameRef.current, score, difficulty: currentDifficulty });
               loadLeaderboard();
               setTargets([]);
-              currentTargetIdRef.current = null;
               return 0;
             }
             return prevTime - 1;
@@ -181,8 +219,8 @@ export const useGameLogic = () => {
         gameTimerRef.current = mainGameTimer;
       }
     }, 1000);
-    gameTimerRef.current = countdownTimer; 
-  }, [clearAllTimers, loadLeaderboard]); 
+    gameTimerRef.current = countdownTimer;
+  }, [clearAllTimers, loadLeaderboard]);
 
 
   useEffect(() => {
@@ -192,39 +230,57 @@ export const useGameLogic = () => {
       }
     } else {
       if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
-      if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
+      targetDespawnTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+      targetDespawnTimeoutRefs.current.clear();
       if (gameStatus === 'gameOver' || gameStatus === 'idle') {
         setTargets([]);
-        currentTargetIdRef.current = null;
       }
+    }
+    // Cleanup function for this effect
+    return () => {
+        if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
+        targetDespawnTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+        targetDespawnTimeoutRefs.current.clear();
     }
   }, [gameStatus]);
 
-  const handleTargetClick = useCallback((id: string, points: number) => {
-    if (gameStatus !== 'playing' || currentTargetIdRef.current !== id) return;
+  const handleTargetClick = useCallback((id: string, points: number, type: TargetType) => {
+    if (gameStatus !== 'playing') return;
 
-    if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
+    const target = targets.find(t => t.id === id);
+    if (!target) return;
+
+    removeTarget(id); // Clears its specific despawn timer
 
     setScore(prevScore => prevScore + points);
-    setTargets([]);
-    currentTargetIdRef.current = null;
 
-    toast({
-      title: `+${points} points!`,
-      description: points > 15 ? "Excellent!" : (points > 8 ? "Great shot!" : "Nice one!"),
-      duration: 1200,
-    });
-
-    if (scheduleNextTargetFnRef.current) {
-      scheduleNextTargetFnRef.current();
+    if (type === 'decoy') {
+      toast({
+        title: `Oops! ${points} points!`,
+        description: "Avoid those red ones!",
+        variant: 'destructive',
+        duration: 1500,
+      });
+    } else if (type === 'precision') {
+       toast({
+        title: `Precision! +${points} points!`,
+        description: "Bullseye!",
+        duration: 1200,
+      });
+    } else {
+      toast({
+        title: `+${points} points!`,
+        description: "Nice shot!",
+        duration: 1000,
+      });
     }
-  }, [gameStatus, toast]);
+    // Next target is scheduled by the continuous loop of scheduleNextTarget
+  }, [gameStatus, toast, removeTarget, targets]);
 
   const restartGame = useCallback(() => {
     clearAllTimers();
     setGameStatus('idle');
     setTargets([]);
-    currentTargetIdRef.current = null;
     setScore(0);
     setTimeLeft(GAME_DURATION);
   }, [clearAllTimers]);

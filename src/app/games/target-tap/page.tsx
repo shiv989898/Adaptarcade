@@ -11,10 +11,10 @@ import { useGameLogic } from '@/hooks/useGameLogic';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Zap } from 'lucide-react'; // Removed ChevronRight as it's not used
+import { ArrowLeft, Zap, Crosshair, ShieldX, Disc } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import type { Difficulty, ScoreEntry } from '@/types/game'; // Added ScoreEntry
+import type { Difficulty, ScoreEntry } from '@/types/game';
 
 export default function TargetTapPage() {
   const {
@@ -24,7 +24,7 @@ export default function TargetTapPage() {
     targets,
     leaderboardScores,
     countdownValue,
-    currentDifficulty, // This is from the hook, reflects difficulty *during* the game
+    currentDifficulty,
     startGame,
     restartGame,
     handleTargetClick,
@@ -32,7 +32,7 @@ export default function TargetTapPage() {
   } = useGameLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium'); // This is for the UI selector
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
 
   useEffect(() => {
     loadLeaderboard();
@@ -52,21 +52,22 @@ export default function TargetTapPage() {
     setIsLeaderboardOpen(true);
   };
 
-  const gameTitle = "Target Tap";
-  const gameDescription = "Tap the appearing targets as fast as you can! Difficulty affects speed and target types.";
+  const gameTitle = "Precision Tap"; // Renamed for emphasis
+  const gameDescription = "Test your accuracy and speed! Hit valuable targets, avoid decoys. Points are awarded based on precision.";
   const gameInstructions = {
-    title: "How to Tap:",
+    title: "How to Tap with Precision:",
     steps: [
       "Select your difficulty.",
-      "Click or tap colored targets that appear.",
-      "Smaller, accent-colored targets are worth more.",
+      "Blue/Purple targets (<Disc className='inline h-4 w-4 text-primary'/>): Standard points.",
+      "Bright Green, smaller targets (<Crosshair className='inline h-4 w-4 text-accent'/>): High points! Hit them fast.",
+      "Red decoy targets (<ShieldX className='inline h-4 w-4 text-destructive'/>): Deduct points! Do NOT tap.",
       "Score as high as you can before time runs out!"
     ]
   };
 
   const handleDifficultyChange = useCallback((value: string) => {
     setSelectedDifficulty(value as Difficulty);
-  }, []); // setSelectedDifficulty is stable
+  }, []);
 
   const difficultySelectorUI = useCallback((
     <RadioGroup
@@ -119,7 +120,7 @@ export default function TargetTapPage() {
             title={gameTitle}
             description={gameDescription}
             instructions={gameInstructions}
-            icon={Zap}
+            icon={Zap} // Main icon can still be Zap
             difficultySelector={difficultySelectorUI}
           />
       )}
@@ -133,7 +134,7 @@ export default function TargetTapPage() {
           className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm text-center"
         >
           <p className="text-8xl font-bold text-primary animate-ping" style={{animationDuration: '1s'}}>{countdownValue}</p>
-          <p className="text-2xl font-headline mt-4">Get Ready to Tap ({selectedDifficulty})!</p>
+          <p className="text-2xl font-headline mt-4">Get Ready for {gameTitle} ({selectedDifficulty})!</p>
         </motion.div>
       )}
 
@@ -146,7 +147,7 @@ export default function TargetTapPage() {
             exit={{ opacity: 0, y: -20 }}
             className="w-full flex justify-center mt-16 sm:mt-20"
           >
-            <ReactionGameBoard targets={targets} onTargetClick={handleTargetClick} />
+            <ReactionGameBoard targets={targets} onTargetClick={handleTargetClick} gameAreaHeight="min(75vh, 500px)" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -157,6 +158,7 @@ export default function TargetTapPage() {
           onPlayAgain={handlePlayAgainFromGameOver}
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
           gameName={`${gameTitle} (${currentDifficulty})`}
+          additionalInfo={score > 100 ? "Excellent precision!" : (score > 0 ? "Good effort!" : "Aim carefully next time!")}
         />
       )}
 

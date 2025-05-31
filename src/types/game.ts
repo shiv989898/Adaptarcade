@@ -1,13 +1,18 @@
 
 import type { LucideIcon } from 'lucide-react';
 
+export type TargetType = 'standard' | 'precision' | 'decoy';
+
 export interface TargetConfig {
   id: string;
   x: number; // percentage
   y: number; // percentage
   size: number; // pixels
-  points: number;
+  points: number; // Can be negative
   color: string;
+  type: TargetType;
+  icon?: LucideIcon; // For visual differentiation
+  despawnTime?: number; // Optional: specific despawn time for this target
 }
 
 export interface ScoreEntry {
@@ -28,7 +33,7 @@ export interface GameMeta {
   name: string;
   description: string;
   route: string;
-  icon?: LucideIcon; 
+  icon?: LucideIcon;
 }
 
 // For Mole Mash game
@@ -40,3 +45,4 @@ export interface MoleHole {
 // Difficulty level type
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
+// Removed Flappy Bird specific types as the game was removed.
