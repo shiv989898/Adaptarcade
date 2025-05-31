@@ -6,7 +6,7 @@ import type { BirdState, PipeState, FlappyBirdGameStatus, ScoreEntry } from '@/t
 import { useToast } from '@/hooks/use-toast';
 import { FLAPPY_BIRD_LEADERBOARD_KEY } from '@/types/game';
 
-const GRAVITY = 0.6;
+const GRAVITY = 0.4; // Reduced gravity for a slightly lighter feel
 const FLAP_STRENGTH = -10; // Negative for upward movement
 const BIRD_SIZE = 30;
 const GAME_AREA_HEIGHT = 500; // pixels
@@ -37,10 +37,6 @@ export const useFlappyBirdLogic = () => {
     const scoresData = localStorage.getItem(FLAPPY_BIRD_LEADERBOARD_KEY);
     setLeaderboardScores(scoresData ? JSON.parse(scoresData) : []);
   }, []);
-
-  useEffect(() => {
-    loadLeaderboard();
-  }, [loadLeaderboard]);
 
   const clearTimers = useCallback(() => {
     if (gameLoopRef.current) {
@@ -86,11 +82,12 @@ export const useFlappyBirdLogic = () => {
 
   const generatePipe = useCallback(() => {
     const minTopHeight = 50;
-    const maxTopHeight = GAME_AREA_HEIGHT - PIPE_GAP - 50; // ensure gap and some margin
+    // Ensure there's enough room for the gap and some bottom pipe
+    const maxTopHeight = GAME_AREA_HEIGHT - PIPE_GAP - 50; 
     const topPipeHeight = Math.random() * (maxTopHeight - minTopHeight) + minTopHeight; 
     
     const newPipe: PipeState = {
-      id: `pipe-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, // more unique ID
+      id: `pipe-${Date.now()}-${Math.random().toString(36).substring(2,7)}`,
       x: GAME_AREA_WIDTH,
       topHeight: topPipeHeight,
       gap: PIPE_GAP,
@@ -101,7 +98,6 @@ export const useFlappyBirdLogic = () => {
 
   useEffect(() => {
     if (gameStatus === 'playing') {
-      // Ensure previous game loop specific timers are cleared before starting new ones
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
       if (pipeGeneratorRef.current) clearInterval(pipeGeneratorRef.current);
 
@@ -115,17 +111,17 @@ export const useFlappyBirdLogic = () => {
         setPipes(prevPipes =>
           prevPipes
             .map(pipe => ({ ...pipe, x: pipe.x - PIPE_SPEED }))
-            .filter(pipe => pipe.x + PIPE_WIDTH > 0) // Keep pipe if it's still visible or coming into view
+            .filter(pipe => pipe.x + PIPE_WIDTH > 0) 
         );
-      }, 20); // Physics update interval
+      }, 20); 
 
       pipeGeneratorRef.current = setInterval(() => {
-        if (gameStatus === 'playing') { // Inner guard
+        if (gameStatus === 'playing') { 
             generatePipe();
         }
       }, PIPE_SPAWN_INTERVAL);
 
-      return () => { // Cleanup for THIS effect instance (when gameStatus changes from 'playing' or component unmounts)
+      return () => { 
         if (gameLoopRef.current) {
           clearInterval(gameLoopRef.current);
           gameLoopRef.current = null;
@@ -136,8 +132,6 @@ export const useFlappyBirdLogic = () => {
         }
       };
     } else {
-      // If gameStatus is NOT 'playing' (e.g., 'countdown', 'gameOver', 'idle'),
-      // ensure these specific game-play timers are cleared.
       if (gameLoopRef.current) {
         clearInterval(gameLoopRef.current);
         gameLoopRef.current = null;
@@ -160,7 +154,6 @@ export const useFlappyBirdLogic = () => {
       bottom: bird.y + bird.size,
     };
 
-    // Ground or Ceiling Collision
     if (bird.y < 0 || bird.y + bird.size > GAME_AREA_HEIGHT) {
       clearTimers(); 
       setGameStatus('gameOver');
@@ -181,7 +174,6 @@ export const useFlappyBirdLogic = () => {
       return; 
     }
 
-    // Pipe Collision
     for (const pipe of pipes) {
       const pipeTopRect = {
         left: pipe.x,
@@ -221,7 +213,6 @@ export const useFlappyBirdLogic = () => {
         return; 
       }
       
-      // Score Increment
       if (pipe.x + pipe.width < (GAME_AREA_WIDTH / 4 - bird.size / 2) && !passedPipeIds.current.has(pipe.id)) {
         setScore(s => s + 1);
         passedPipeIds.current.add(pipe.id);
@@ -239,12 +230,15 @@ export const useFlappyBirdLogic = () => {
 
   const restartGame = useCallback(() => {
     clearTimers();
-    resetGame(); // Make sure game state is fully reset
+    resetGame(); 
     setGameStatus('idle'); 
   }, [clearTimers, resetGame]);
   
   useEffect(() => {
-    // General cleanup for the hook itself when it unmounts
+    loadLeaderboard(); // Initial load
+  }, [loadLeaderboard]);
+
+  useEffect(() => {
     return () => {
       clearTimers(); 
     };
@@ -254,7 +248,7 @@ export const useFlappyBirdLogic = () => {
     bird,
     pipes,
     score,
-    timeLeft: -1, // Flappy bird isn't typically timed per round like this
+    timeLeft: -1, 
     gameStatus,
     countdownValue,
     leaderboardScores,
