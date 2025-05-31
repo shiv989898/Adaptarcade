@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useEffect, useCallback, useState } from 'react'; // Added useState here
+import { useEffect, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bird as BirdIcon } from 'lucide-react'; // Renamed to avoid conflict
+import { ArrowLeft, Bird as BirdIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import HUD from '@/components/game/HUD';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
@@ -30,11 +30,16 @@ export default function FlappyBirdPage() {
     gameAreaWidth,
   } = useFlappyBirdLogic();
 
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false); // Changed from React.useState
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   useEffect(() => {
+    // The hook itself calls loadLeaderboard on its mount and when scores are saved.
+    // This can be simplified if the hook reliably updates leaderboardScores.
+    // For now, ensuring it's called if gameStatus changes (e.g. after game over)
+    // might be desired, or simply rely on the hook's internal calls.
+    // Let's simplify to just call on mount from the page, hook handles the rest.
     loadLeaderboard();
-  }, [loadLeaderboard, gameStatus]);
+  }, [loadLeaderboard]);
 
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 

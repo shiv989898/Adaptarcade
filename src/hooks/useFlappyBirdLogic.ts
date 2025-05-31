@@ -60,22 +60,6 @@ export const useFlappyBirdLogic = () => {
     passedPipeIds.current.clear();
   }, []);
   
-  const saveScore = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const currentScores = JSON.parse(localStorage.getItem(FLAPPY_BIRD_LEADERBOARD_KEY) || '[]') as ScoreEntry[];
-    const newEntry: ScoreEntry = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2,9),
-      playerName: playerNameRef.current,
-      score: score,
-      date: new Date().toISOString(),
-    };
-    currentScores.push(newEntry);
-    currentScores.sort((a, b) => b.score - a.score);
-    const updatedLeaderboard = currentScores.slice(0, 10);
-    localStorage.setItem(FLAPPY_BIRD_LEADERBOARD_KEY, JSON.stringify(updatedLeaderboard));
-    loadLeaderboard();
-  }, [score, loadLeaderboard]);
-
   const startGame = useCallback(() => {
     clearTimers(); 
     resetGame();
@@ -106,11 +90,10 @@ export const useFlappyBirdLogic = () => {
   }, []);
 
 
-  // Main game status effect
+  // Main game status effect for starting/stopping game loops
   useEffect(() => {
     if (gameStatus === 'playing') {
-      // Defensively clear any lingering timers before starting new ones.
-      clearTimers();
+      clearTimers(); // Defensive clear before starting new timers for 'playing' state
 
       gameLoopRef.current = setInterval(() => {
         setBird(prevBird => {
@@ -127,38 +110,24 @@ export const useFlappyBirdLogic = () => {
       }, 20); // ~50 FPS
 
       pipeGeneratorRef.current = setInterval(() => {
-        // Check gameStatus again inside interval in case it changed
-        if (gameStatus === 'playing') {
+        if (gameStatus === 'playing') { // Double check status inside interval
             generatePipe();
         }
       }, PIPE_SPAWN_INTERVAL);
 
       return () => {
-        // This cleanup runs when gameStatus is no longer 'playing' or component unmounts.
-        clearTimers();
+        clearTimers(); // Cleanup when gameStatus is no longer 'playing' or component unmounts
       };
-    } else if (gameStatus === 'gameOver') {
-      clearTimers(); // Ensure all game activity stops
-      saveScore();    // Then save the score
-    } else if (gameStatus === 'idle') {
+    } else if (gameStatus === 'gameOver' || gameStatus === 'idle') {
       clearTimers(); // Ensure all game activity stops
     }
-    // 'countdown' state is handled by startGame, game timers should not be active.
-  }, [gameStatus, generatePipe, clearTimers, saveScore]); // saveScore is needed if it's called within this effect structure
+  }, [gameStatus, generatePipe, clearTimers]);
 
 
-  // Collision detection and scoring
+  // Collision detection, scoring, and game over handling
   useEffect(() => {
     if (gameStatus !== 'playing') return;
 
-    // Bird boundaries
-    if (bird.y < 0 || bird.y + bird.size > GAME_AREA_HEIGHT) {
-      setGameStatus('gameOver');
-      toast({ title: "Game Over!", description: "Hit the boundary!", variant: "destructive", duration: 2000 });
-      return;
-    }
-
-    // Pipe collision & scoring
     const birdRect = {
       left: GAME_AREA_WIDTH / 4 - bird.size / 2, 
       right: GAME_AREA_WIDTH / 4 + bird.size / 2,
@@ -166,6 +135,28 @@ export const useFlappyBirdLogic = () => {
       bottom: bird.y + bird.size,
     };
 
+    // Bird boundaries
+    if (bird.y < 0 || bird.y + bird.size > GAME_AREA_HEIGHT) {
+      clearTimers(); // Stop game activity
+      setGameStatus('gameOver');
+      if (typeof window !== 'undefined') {
+        const currentScores = JSON.parse(localStorage.getItem(FLAPPY_BIRD_LEADERBOARD_KEY) || '[]') as ScoreEntry[];
+        const newEntry: ScoreEntry = {
+          id: Date.now().toString() + Math.random().toString(36).substring(2,9),
+          playerName: playerNameRef.current,
+          score: score, // Use current score from state
+          date: new Date().toISOString(),
+        };
+        currentScores.push(newEntry);
+        currentScores.sort((a, b) => b.score - a.score);
+        localStorage.setItem(FLAPPY_BIRD_LEADERBOARD_KEY, JSON.stringify(currentScores.slice(0, 10)));
+        loadLeaderboard();
+      }
+      toast({ title: "Game Over!", description: "Hit the boundary!", variant: "destructive", duration: 2000 });
+      return; // Exit effect after handling game over
+    }
+
+    // Pipe collision & scoring
     for (const pipe of pipes) {
       const pipeTopRect = {
         left: pipe.x,
@@ -186,18 +177,33 @@ export const useFlappyBirdLogic = () => {
                                  birdRect.bottom > pipeBottomRect.top && birdRect.top < pipeBottomRect.bottom;
 
       if (collidesWithTop || collidesWithBottom) {
+        clearTimers(); // Stop game activity
         setGameStatus('gameOver');
+        if (typeof window !== 'undefined') {
+          const currentScores = JSON.parse(localStorage.getItem(FLAPPY_BIRD_LEADERBOARD_KEY) || '[]') as ScoreEntry[];
+          const newEntry: ScoreEntry = {
+            id: Date.now().toString() + Math.random().toString(36).substring(2,9),
+            playerName: playerNameRef.current,
+            score: score, // Use current score from state
+            date: new Date().toISOString(),
+          };
+          currentScores.push(newEntry);
+          currentScores.sort((a, b) => b.score - a.score);
+          localStorage.setItem(FLAPPY_BIRD_LEADERBOARD_KEY, JSON.stringify(currentScores.slice(0, 10)));
+          loadLeaderboard();
+        }
         toast({ title: "Game Over!", description: "Hit a pipe!", variant: "destructive", duration: 2000 });
-        return;
+        return; // Exit effect after handling game over
       }
       
+      // Scoring: if bird's front has passed the pipe's back
       if (pipe.x + pipe.width < birdRect.left && !passedPipeIds.current.has(pipe.id)) {
         setScore(s => s + 1);
         passedPipeIds.current.add(pipe.id);
         toast({ title: "+1 Point!", duration: 1000 });
       }
     }
-  }, [bird, pipes, gameStatus, toast]);
+  }, [bird, pipes, gameStatus, toast, score, loadLeaderboard, clearTimers]); // Added score, loadLeaderboard, clearTimers
 
 
   const flapBird = useCallback(() => {
@@ -207,11 +213,12 @@ export const useFlappyBirdLogic = () => {
   }, [gameStatus]);
 
   const restartGame = useCallback(() => {
+    // clearTimers(); // Timers are cleared by gameStatus effect when switching to 'idle'
     setGameStatus('idle'); 
-    setScore(0); 
-    resetGame(); 
-  }, [resetGame]);
+    // Score and game elements are reset by startGame when it's next called
+  }, []);
   
+  // General cleanup for the hook itself
   useEffect(() => {
     return () => {
       clearTimers();
