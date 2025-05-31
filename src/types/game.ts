@@ -29,8 +29,8 @@ export interface GameMeta {
   description: string;
   route: string;
   icon?: LucideIcon; // Or string for image path
-  thumbnailUrl?: string; // For a preview image on the card
-  dataAiHint?: string; // For placeholder image generation
+  // thumbnailUrl?: string; // Removed
+  // dataAiHint?: string; // Removed
 }
 
 // For Mole Mash game

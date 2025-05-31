@@ -5,7 +5,6 @@ import type { GameMeta } from '@/types/game';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import Image from 'next/image';
 import { PlayCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -22,20 +21,8 @@ const GameCard: React.FC<GameCardProps> = ({ game }) => {
       transition={{ type: "spring", stiffness: 300 }}
       className="w-full max-w-sm"
     >
-      <Card className="h-full overflow-hidden shadow-lg flex flex-col bg-card/80 backdrop-blur-sm border-border hover:border-primary/50 transition-colors duration-200">
-        <CardHeader className="p-0">
-          <div className="relative w-full h-48 bg-muted/50 group">
-            <Image
-              src={game.thumbnailUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(game.name)}`}
-              alt={`${game.name} thumbnail`}
-              layout="fill"
-              objectFit="cover"
-              data-ai-hint={game.dataAiHint || 'abstract game'}
-              className="group-hover:scale-105 transition-transform duration-300 ease-in-out"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent group-hover:from-black/50 transition-opacity duration-300"></div>
-          </div>
-        </CardHeader>
+      <Card className="h-full shadow-lg flex flex-col bg-card/80 backdrop-blur-sm border-border hover:border-primary/50 transition-colors duration-200">
+        {/* CardHeader and Image removed */}
         <CardContent className="p-5 sm:p-6 flex-grow">
           <CardTitle className="text-2xl font-headline text-primary mb-2 flex items-center">
             {IconComponent && <IconComponent className="mr-2.5 h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2} />}
