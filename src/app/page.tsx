@@ -12,7 +12,7 @@ const games: GameMeta[] = [
     description: 'Test your reflexes! Tap varied targets as fast as you can. Smaller targets = more points!',
     route: '/games/target-tap',
     icon: Zap,
-    thumbnailUrl: 'https://firebasestudio.promptxyz.dev/17219131556401694.png',
+    thumbnailUrl: '/targettap.png', // Updated to local image
     dataAiHint: 'sci-fi target reticle',
   },
   {
