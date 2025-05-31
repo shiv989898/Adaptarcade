@@ -1,21 +1,22 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trophy, RotateCcw, Timer, Star } from 'lucide-react'; // Changed AlarmClock to Timer
-import type { GameStatus } from '@/hooks/useGameLogic'; // Assuming useGameLogic is the primary hook type
+import { Trophy, RotateCcw, Timer, Star } from 'lucide-react';
+import type { GameStatus } from '@/hooks/useGameLogic';
 
 interface HUDProps {
   score: number;
   timeLeft: number;
   onToggleLeaderboard: () => void;
   onRestart: () => void;
-  gameStatus: GameStatus | string; // Allow string for compatibility with other game hooks
+  gameStatus: GameStatus | string;
+  scoreLabel?: string; // New prop
 }
 
-const HUD: React.FC<HUDProps> = ({ score, timeLeft, onToggleLeaderboard, onRestart, gameStatus }) => {
+const HUD: React.FC<HUDProps> = ({ score, timeLeft, onToggleLeaderboard, onRestart, gameStatus, scoreLabel }) => {
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60); // Use Math.floor for whole seconds display
+    const secs = Math.floor(seconds % 60);
     return `${minutes.toString().padStart(1, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -26,7 +27,7 @@ const HUD: React.FC<HUDProps> = ({ score, timeLeft, onToggleLeaderboard, onResta
     <Card className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 w-auto max-w-[calc(100%-1.5rem)] sm:max-w-[calc(100%-2rem)] bg-card/80 backdrop-blur-md shadow-xl z-10 border-border">
       <CardContent className="p-2 sm:p-3 flex items-center justify-center gap-2.5 sm:gap-4">
         <div className="text-center px-1 sm:px-2">
-          <p className="text-xs sm:text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Star className="h-3 w-3 sm:h-3.5 sm:w-3.5" />SCORE</p>
+          <p className="text-xs sm:text-sm text-muted-foreground font-headline flex items-center gap-1 justify-center"><Star className="h-3 w-3 sm:h-3.5 sm:w-3.5" />{scoreLabel || 'SCORE'}</p>
           <p className="text-xl sm:text-2xl font-bold text-primary min-w-[4ch]">{score}</p>
         </div>
         

@@ -16,10 +16,11 @@ interface LeaderboardDialogProps {
   isOpen: boolean;
   onClose: () => void;
   scores: ScoreEntry[];
-  gameName?: string; // Added to make title dynamic
+  gameName?: string;
+  scoreColumnName?: string; // New prop
 }
 
-const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, scores, gameName = "Game" }) => {
+const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, scores, gameName = "Game", scoreColumnName }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] bg-card text-card-foreground">
@@ -38,7 +39,7 @@ const LeaderboardDialog: React.FC<LeaderboardDialogProps> = ({ isOpen, onClose, 
                 <TableRow>
                   <TableHead className="w-[50px]">Rank</TableHead>
                   <TableHead>Player</TableHead>
-                  <TableHead className="text-right flex items-center justify-end gap-1"><Star className="h-4 w-4"/>Score</TableHead>
+                  <TableHead className="text-right flex items-center justify-end gap-1"><Star className="h-4 w-4"/>{scoreColumnName || 'Score'}</TableHead>
                   {/* <TableHead className="text-right">Date</TableHead> Optional: if you want to show date */}
                 </TableRow>
               </TableHeader>

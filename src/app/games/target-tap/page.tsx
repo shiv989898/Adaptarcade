@@ -15,6 +15,7 @@ import { ArrowLeft, Zap, Crosshair, ShieldX, Disc, Smile, Meh, Frown } from 'luc
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import type { DecoyFrequencyMode, ScoreEntry } from '@/types/game';
+import type { LucideIcon } from 'lucide-react'; // Import LucideIcon
 
 const MODE_DETAILS: Record<DecoyFrequencyMode, { label: string; icon: LucideIcon; description: string }> = {
   zen: { label: "Zen", icon: Smile, description: "0% Decoys: Pure precision practice." },
@@ -39,7 +40,6 @@ export default function TargetTapPage() {
   } = useGameLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  // Selected mode for the UI, hook's currentMode is the source of truth during game
   const [selectedUIMode, setSelectedUIMode] = useState<DecoyFrequencyMode>('challenging'); 
 
   useEffect(() => {
@@ -47,8 +47,6 @@ export default function TargetTapPage() {
   }, [loadLeaderboard, gameStatus]);
 
   useEffect(() => {
-    // Sync UI selection with hook's mode if it changes (e.g. on initial load if hook has a different default)
-    // This is mostly for consistency if the hook's default changes.
     setSelectedUIMode(currentMode);
   }, [currentMode]);
 
@@ -60,9 +58,6 @@ export default function TargetTapPage() {
   };
 
   const handlePlayAgainFromGameOver = () => {
-    // Restart will use the mode that was active during the game over
-    // or we can let the user re-select from the idle screen after restartGame puts it there.
-    // For now, restartGame transitions to idle, allowing re-selection.
     restartGame(); 
   };
 
@@ -88,8 +83,6 @@ export default function TargetTapPage() {
   const handleModeChange = useCallback((value: string) => {
     const newMode = value as DecoyFrequencyMode;
     setSelectedUIMode(newMode);
-    // Optional: if you want the hook's mode to update instantly on selection, not just on game start
-    // setCurrentMode(newMode); 
   }, [setSelectedUIMode]);
 
   const modeSelectorUI = useCallback((
@@ -138,6 +131,7 @@ export default function TargetTapPage() {
               onToggleLeaderboard={toggleLeaderboard}
               onRestart={restartGame}
               gameStatus={gameStatus}
+              scoreLabel="SCORE"
             />
           </motion.div>
         )}
@@ -150,7 +144,7 @@ export default function TargetTapPage() {
             description={gameDescription}
             instructions={gameInstructions}
             icon={Zap}
-            difficultySelector={modeSelectorUI} // Pass modeSelectorUI here
+            difficultySelector={modeSelectorUI}
           />
       )}
 
@@ -189,6 +183,7 @@ export default function TargetTapPage() {
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
           gameName={`${gameTitle} (${currentModeDetails.label} Mode)`}
           additionalInfo={score > 150 ? "Incredible precision!" : (score > 50 ? "Great tapping!" : "Keep practicing that accuracy!")}
+          scoreUnit="Points"
         />
       )}
 
@@ -197,6 +192,7 @@ export default function TargetTapPage() {
         onClose={toggleLeaderboard}
         scores={leaderboardScores as ScoreEntry[]}
         gameName={`${gameTitle} (${currentModeDetails.label})`}
+        scoreColumnName="Score"
       />
     </main>
   );

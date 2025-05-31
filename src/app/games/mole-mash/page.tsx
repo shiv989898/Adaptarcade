@@ -67,7 +67,7 @@ export default function MoleMashPage() {
 
   const handleDifficultyChange = useCallback((value: string) => {
     setSelectedDifficulty(value as Difficulty);
-  }, []); // setSelectedDifficulty is stable
+  }, []); 
 
   const difficultySelectorUI = useCallback((
     <RadioGroup
@@ -109,6 +109,7 @@ export default function MoleMashPage() {
               onToggleLeaderboard={toggleLeaderboard}
               onRestart={restartGame}
               gameStatus={gameStatus}
+              scoreLabel="SCORE"
             />
           </motion.div>
         )}
@@ -174,6 +175,7 @@ export default function MoleMashPage() {
           onPlayAgain={handlePlayAgainFromGameOver}
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
           gameName={`${gameTitle} (${currentDifficulty})`}
+          scoreUnit="Points"
         />
       )}
 
@@ -182,6 +184,7 @@ export default function MoleMashPage() {
         onClose={toggleLeaderboard}
         scores={leaderboardScores as ScoreEntry[]}
         gameName={gameTitle}
+        scoreColumnName="Score"
       />
     </main>
   );

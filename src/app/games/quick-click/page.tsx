@@ -10,8 +10,8 @@ import Link from 'next/link';
 import { ArrowLeft, MousePointerClick, Play, RotateCcw, Trophy, Star, Award, Zap, Timer } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
-import StartScreen from '@/components/game/StartScreen'; // Import StartScreen
-import GameOverScreen from '@/components/game/GameOverScreen'; // Import GameOverScreen
+import StartScreen from '@/components/game/StartScreen';
+import GameOverScreen from '@/components/game/GameOverScreen';
 
 const QUICK_CLICK_GAME_TOTAL_DURATION = 5; 
 
@@ -162,6 +162,7 @@ export default function QuickClickPage() {
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
           gameName={gameTitle}
           additionalInfo={`You clicked ${score} times!`}
+          scoreUnit="Clicks"
         />
       )}
       
@@ -170,6 +171,7 @@ export default function QuickClickPage() {
         onClose={toggleLeaderboard} 
         scores={leaderboardScores as QuickClickScoreEntry[]}
         gameName={gameTitle}
+        scoreColumnName="Clicks"
       />
     </main>
   );

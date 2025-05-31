@@ -5,12 +5,13 @@ import { Award, RotateCcw, Trophy, PartyPopper } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface GameOverScreenProps {
-  score: number; // Final WPM or primary score
+  score: number;
   onPlayAgain: () => void;
   onShowLeaderboard: () => void;
   gameName?: string;
   additionalInfo?: string; 
-  children?: React.ReactNode; // For graph or other custom content
+  children?: React.ReactNode;
+  scoreUnit?: string; // New prop e.g., "WPM", "Points", "Clicks"
 }
 
 const GameOverScreen: React.FC<GameOverScreenProps> = ({ 
@@ -19,7 +20,8 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
   onShowLeaderboard, 
   gameName = "Game",
   additionalInfo,
-  children
+  children,
+  scoreUnit 
 }) => {
   return (
     <motion.div 
@@ -37,8 +39,10 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
           <CardTitle className="text-3xl sm:text-4xl font-headline text-primary">
             {gameName} Complete!
           </CardTitle>
-          {/* Primary score display */}
-          <p className="text-4xl sm:text-5xl font-bold text-accent py-1 sm:py-2">{score} <span className="text-2xl sm:text-3xl text-muted-foreground">WPM</span></p>
+          <p className="text-4xl sm:text-5xl font-bold text-accent py-1 sm:py-2">
+            {score} 
+            {scoreUnit && <span className="text-2xl sm:text-3xl text-muted-foreground ml-2">{scoreUnit}</span>}
+          </p>
           {additionalInfo && (
              <CardDescription className="text-md sm:text-lg text-muted-foreground pt-1">
               {additionalInfo}
@@ -66,7 +70,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
          <CardFooter className="pt-4 sm:pt-6">
             <p className="text-xs sm:text-sm text-muted-foreground text-center w-full flex items-center justify-center gap-1">
               <PartyPopper className="h-4 w-4 text-accent" />
-              {score > 0 ? "Well Typed!" : "Keep Practicing!"}
+              {score > 0 ? (scoreUnit === "WPM" ? "Well Typed!" : "Great Job!") : "Keep Practicing!"}
             </p>
          </CardFooter>
       </Card>
@@ -75,4 +79,3 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({
 };
 
 export default GameOverScreen;
-

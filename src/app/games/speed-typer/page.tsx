@@ -158,6 +158,7 @@ export default function SpeedTyperPage() {
               onToggleLeaderboard={toggleLeaderboard}
               onRestart={restartGame}
               gameStatus={gameStatus}
+              scoreLabel="WPM"
             />
           </motion.div>
         )}
@@ -233,6 +234,7 @@ export default function SpeedTyperPage() {
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
           gameName={`${gameTitle} (${selectedDurationUI}s Test)`}
           additionalInfo={`Accuracy: ${stats.accuracy.toFixed(1)}%`}
+          scoreUnit="WPM"
         >
           <div className="mt-4 w-full">
             <h3 className="text-lg font-semibold text-center mb-2 text-primary">WPM Over Time</h3>
@@ -246,6 +248,7 @@ export default function SpeedTyperPage() {
         onClose={toggleLeaderboard}
         scores={leaderboardScores as ScoreEntry[]} 
         gameName={gameTitle}
+        scoreColumnName="WPM"
       />
     </main>
   );
