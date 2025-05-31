@@ -42,40 +42,52 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.15, // Adjusted stagger
+      delayChildren: 0.4, // Delay after header animation
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 50, scale: 0.85 }, // Start further down and more scaled
   visible: {
     opacity: 1,
     y: 0,
+    scale: 1,
     transition: {
       type: "spring",
-      stiffness: 100,
-      damping: 12,
+      stiffness: 120, // Adjusted spring
+      damping: 15,
+      duration: 0.5,
     },
   },
 };
 
 export default function GameHubPage() {
   return (
-    <main className="flex-grow flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-purple-700/50 via-indigo-600/40 to-pink-500/30">
+    <main className="flex-grow flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-purple-700/80 via-indigo-600/70 to-pink-500/60">
       <motion.header
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        initial={{ opacity: 0 }} // Let children handle detailed entrance
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
         className="mb-12 text-center"
       >
-        <h1 className="text-5xl sm:text-6xl font-headline font-bold text-primary mb-4">
+        <motion.h1
+          initial={{ opacity: 0, scale: 0.7, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.6, -0.05, 0.01, 0.99], delay: 0.1 }}
+          className="text-5xl sm:text-6xl font-headline font-bold text-primary mb-4"
+        >
           Adaptarcade
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          Welcome to the Arcade! Choose a game below and test your skills.
-        </p>
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
+          className="text-lg text-muted-foreground max-w-2xl"
+        >
+          Welcome to the Adaptarcade! Choose a game below and test your skills.
+        </motion.p>
       </motion.header>
 
       <motion.div
@@ -94,7 +106,7 @@ export default function GameHubPage() {
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.5 + games.length * 0.1 }}
+        transition={{ duration: 0.5, delay: 0.6 + games.length * 0.15 }} // Adjusted delay to account for new stagger and header
         className="mt-16 text-center text-sm text-muted-foreground"
       >
         <p>&copy; 2025 Adaptarcade. All games are for demonstration purposes.</p>
