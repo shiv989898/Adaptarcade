@@ -3,36 +3,30 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { addScoreToLeaderboard, getLeaderboard as getQuickClickLeaderboard } from '@/lib/localStorageHelper'; // Assuming generic or separate keys
+import { addQuickClickScore, getQuickClickLeaderboard } from '@/lib/localStorageHelper';
+import type { ScoreEntry } from '@/types/game';
+
 
 export type QuickClickGameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
-export interface QuickClickScoreEntry {
-  id: string;
-  playerName: string;
-  score: number; // clicks
-  date: string;
-}
-
 
 const QUICK_CLICK_GAME_DURATION = 5; // seconds
 const QUICK_CLICK_COUNTDOWN_SECONDS = 3;
-const QUICK_CLICK_LEADERBOARD_KEY = 'quickClickLeaderboard'; // Specific key for this game
+const PLAYER_NAME = 'ClickMaster'; // Default player name
+
 
 export const useQuickClickLogic = () => {
   const [score, setScore] = useState(0); // clicks
   const [timeLeft, setTimeLeft] = useState(QUICK_CLICK_GAME_DURATION);
   const [gameStatus, setGameStatus] = useState<QuickClickGameStatus>('idle');
   const [countdownValue, setCountdownValue] = useState(QUICK_CLICK_COUNTDOWN_SECONDS);
-  const [leaderboardScores, setLeaderboardScores] = useState<QuickClickScoreEntry[]>([]);
+  const [leaderboardScores, setLeaderboardScores] = useState<ScoreEntry[]>([]);
 
 
   const { toast } = useToast();
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const playerNameRef = useRef<string>('ClickMaster');
 
   const loadLeaderboard = useCallback(() => {
-    const scoresData = localStorage.getItem(QUICK_CLICK_LEADERBOARD_KEY);
-    setLeaderboardScores(scoresData ? JSON.parse(scoresData) : []);
+    setLeaderboardScores(getQuickClickLeaderboard());
   }, []);
 
   useEffect(() => {
@@ -61,23 +55,9 @@ export const useQuickClickLogic = () => {
         
         timerIntervalRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
-            if (prevTime <= 0.1) { // Check against small value to ensure it triggers
+            if (prevTime <= 0.1) { 
               clearInterval(timerIntervalRef.current!);
               setGameStatus('gameOver');
-              
-              const finalScore = score; // Capture score at this moment
-              const currentScores = JSON.parse(localStorage.getItem(QUICK_CLICK_LEADERBOARD_KEY) || '[]') as QuickClickScoreEntry[];
-              const newEntry: QuickClickScoreEntry = {
-                id: Date.now().toString() + Math.random().toString(36).substring(2,9),
-                playerName: playerNameRef.current,
-                score: finalScore, 
-                date: new Date().toISOString(),
-              };
-              currentScores.push(newEntry);
-              currentScores.sort((a,b) => b.score - a.score);
-              const updatedLeaderboard = currentScores.slice(0, 10);
-              localStorage.setItem(QUICK_CLICK_LEADERBOARD_KEY, JSON.stringify(updatedLeaderboard));
-              loadLeaderboard(); 
               return 0;
             }
             return prevTime - 1;
@@ -85,7 +65,14 @@ export const useQuickClickLogic = () => {
         }, 1000);
       }
     }, 1000);
-  }, [clearTimers, loadLeaderboard]); // Removed score and leaderboardScores from deps
+  }, [clearTimers]); 
+
+  useEffect(() => {
+    if (gameStatus === 'gameOver') {
+      addQuickClickScore({ playerName: PLAYER_NAME, score });
+      loadLeaderboard();
+    }
+  }, [gameStatus, score, loadLeaderboard]);
 
   const handleGameButtonClick = useCallback(() => {
     if (gameStatus !== 'playing') return;

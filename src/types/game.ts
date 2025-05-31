@@ -23,10 +23,14 @@ export interface TargetConfig {
 export interface ScoreEntry {
   id:string;
   playerName: string;
-  score: number;
+  score: number; // Generic score, used as WPM for typing, points for others
   date: string;
-  mode?: DecoyFrequencyMode; // Optional: to track mode on leaderboard
+  // Game-specific data
+  mode?: DecoyFrequencyMode; // For TargetTap
+  accuracy?: number; // For Typing Game
+  difficulty?: Difficulty; // For MoleMash
 }
+
 
 export interface GameSettings {
   duration: number; // seconds
@@ -47,5 +51,25 @@ export interface MoleHole {
   hasMole: boolean;
 }
 
-// Difficulty level type for Mole Mash (Target Tap no longer uses this)
 export type Difficulty = 'easy' | 'medium' | 'hard';
+
+// For Typing Game
+export interface Word {
+  id: string; // Unique ID for each word instance
+  text: string; // The word itself
+  typed: string; // What the user has typed for this word so far
+  status: 'pending' | 'active' | 'correct' | 'incorrect';
+  isCorrect?: boolean; // Final state after user moves to next word
+}
+
+export type TypingGameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
+
+export interface TypingStats {
+  wpm: number;
+  accuracy: number;
+  correctChars: number;
+  incorrectChars: number;
+  totalCharsTyped: number; // All characters typed including corrections
+  totalWordsAttempted: number;
+  correctWords: number;
+}

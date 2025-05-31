@@ -3,7 +3,7 @@
 
 import GameCard from '@/components/game/GameCard';
 import type { GameMeta } from '@/types/game';
-import { Zap, MousePointerClick, Hammer } from 'lucide-react';
+import { Zap, MousePointerClick, Hammer, Keyboard } from 'lucide-react'; // Added Keyboard icon
 
 const games: GameMeta[] = [
   {
@@ -27,7 +27,13 @@ const games: GameMeta[] = [
     route: '/games/mole-mash',
     icon: Hammer,
   },
-  // Add more games here as GameMeta objects
+  {
+    id: 'speed-typer',
+    name: 'Speed Typer',
+    description: 'Test your typing speed and accuracy. Type the displayed words as quickly and accurately as possible!',
+    route: '/games/speed-typer',
+    icon: Keyboard,
+  },
 ];
 
 export default function GameHubPage() {

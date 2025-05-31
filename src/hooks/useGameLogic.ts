@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TargetConfig, ScoreEntry, TargetType, DecoyFrequencyMode } from '@/types/game';
-import { getLeaderboard, addScoreToLeaderboard } from '@/lib/localStorageHelper';
+import { getTargetTapLeaderboard, addTargetTapScore } from '@/lib/localStorageHelper';
 import { useToast } from '@/hooks/use-toast';
 import { Disc, Crosshair, ShieldX } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -11,7 +11,8 @@ export type GameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 
 const GAME_DURATION = 30; // seconds
 const COUNTDOWN_SECONDS = 3;
-const SCORE_DECAY_FACTOR = 0.75; // How much score decays for standard targets
+const SCORE_DECAY_FACTOR = 0.75; 
+const PLAYER_NAME = 'PrecisionPro';
 
 interface TargetTypeParams {
   type: TargetType;
@@ -72,10 +73,9 @@ const getRandomTargetTypeParamsForMode = (mode: DecoyFrequencyMode): TargetTypeP
   }
 
   const nonDecoyTypes = availableTypes.filter(p => p.type !== 'decoy');
-  if (nonDecoyTypes.length === 0) return availableTypes[0]; // Should not happen with current config
+  if (nonDecoyTypes.length === 0) return availableTypes[0];
 
   const nonDecoyRoll = Math.random();
-  // Adjust distribution: 60% chance for standard, 40% for precision among non-decoys
   if (nonDecoyRoll < 0.6 || nonDecoyTypes.filter(p => p.type === 'precision').length === 0) {
      const standardParams = nonDecoyTypes.find(p => p.type === 'standard');
      if (standardParams) return standardParams;
@@ -83,7 +83,6 @@ const getRandomTargetTypeParamsForMode = (mode: DecoyFrequencyMode): TargetTypeP
      const precisionParams = nonDecoyTypes.find(p => p.type === 'precision');
      if (precisionParams) return precisionParams;
   }
-  // Fallback, should ideally be covered by above logic
   return (nonDecoyTypes.find(p => p.type === 'standard') || nonDecoyTypes[0]);
 };
 
@@ -103,11 +102,10 @@ export const useGameLogic = () => {
   const targetGrowthTimerRef = useRef<NodeJS.Timeout | null>(null);
   const targetSpawnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetDespawnTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const playerNameRef = useRef<string>('PrecisionPro');
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const generateTargetFnRef = useRef<() => void>();
   const scheduleNextTargetFnRef = useRef<() => void>();
-  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
   const clearAllTimers = useCallback(() => {
@@ -161,7 +159,7 @@ export const useGameLogic = () => {
           if (despawningTarget.type === 'precision') {
               const penalty = Math.round(despawningTarget.points / 10);
               setScore(prev => Math.max(0, prev - penalty));
-              setTimeout(() => { // Defer toast call
+              setTimeout(() => { 
                 toast({ title: `Missed Precision! -${penalty}`, variant: 'destructive', duration: 1000 });
               }, 0);
           }
@@ -199,7 +197,7 @@ export const useGameLogic = () => {
   useEffect(() => { scheduleNextTargetFnRef.current = scheduleNextTarget; }, [scheduleNextTarget]);
 
   const loadLeaderboard = useCallback(() => {
-    setLeaderboardScores(getLeaderboard());
+    setLeaderboardScores(getTargetTapLeaderboard());
   }, []);
 
   useEffect(() => { loadLeaderboard(); }, [loadLeaderboard]);
@@ -213,24 +211,28 @@ export const useGameLogic = () => {
     setTargets([]); 
     setGameStatus('countdown');
 
-    let currentCountdown = COUNTDOWN_SECONDS;
+    let currentCountdownVal = COUNTDOWN_SECONDS;
     countdownTimerRef.current = setInterval(() => {
-      currentCountdown--;
-      setCountdownValue(currentCountdown);
-      if (currentCountdown === 0) {
+      currentCountdownVal--;
+      setCountdownValue(currentCountdownVal);
+      if (currentCountdownVal === 0) {
         clearInterval(countdownTimerRef.current!);
         setGameStatus('playing');
         
+        // Main game timer (1 per second)
         gameTimerRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
             const newTime = prevTime - 1;
-            if (newTime < 0) { 
+            if (newTime <= 0) {
+              clearInterval(gameTimerRef.current!); 
+              setGameStatus('gameOver'); // Game over handled by useEffect on gameStatus
               return 0; 
             }
             return newTime;
           });
         }, 1000);
 
+        // Target growth/visuals timer (60fps)
         targetGrowthTimerRef.current = setInterval(() => {
           setTargets(prevTs =>
             prevTs.map(t => {
@@ -248,14 +250,6 @@ export const useGameLogic = () => {
     }, 1000);
   }, [clearAllTimers]);
 
-
-  useEffect(() => {
-    if (timeLeft <= 0 && gameStatus === 'playing') {
-      setGameStatus('gameOver');
-    }
-  }, [timeLeft, gameStatus]);
-
-
   useEffect(() => {
     if (gameStatus === 'playing') {
       if (scheduleNextTargetFnRef.current) {
@@ -267,7 +261,7 @@ export const useGameLogic = () => {
     
     if (gameStatus === 'gameOver') {
       clearAllTimers(); 
-      addScoreToLeaderboard({ playerName: playerNameRef.current, score, mode: currentMode });
+      addTargetTapScore({ playerName: PLAYER_NAME, score, mode: currentMode });
       loadLeaderboard(); 
       setTargets([]); 
     }
@@ -305,16 +299,18 @@ export const useGameLogic = () => {
     setScore(prevScore => Math.max(0, prevScore + pointsAwarded));
 
     if (target.type === 'decoy') {
-      toast({ title: `Decoy Hit! ${pointsAwarded} points!`, variant: 'destructive', duration: 1500 });
+      toast({ title: `Decoy Hit! ${pointsAwarded} points!`, variant: 'destructive', duration: 1000 });
     } else if (target.type === 'precision') {
        toast({ title: `Precision! +${pointsAwarded} points!`, duration: 1200 });
     } 
-    // No toast for standard hits anymore
   }, [gameStatus, toast, removeTarget, targets]);
 
   const restartGame = useCallback(() => {
+    clearAllTimers();
     setGameStatus('idle');
-  }, []);
+    setScore(0);
+    setTimeLeft(GAME_DURATION);
+  }, [clearAllTimers]);
 
   useEffect(() => {
     return () => {
@@ -338,4 +334,3 @@ export const useGameLogic = () => {
     setCurrentMode, 
   };
 };
-    
