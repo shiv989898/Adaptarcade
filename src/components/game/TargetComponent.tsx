@@ -5,16 +5,15 @@ import { cn } from '@/lib/utils';
 
 interface TargetComponentProps {
   target: TargetConfig;
-  onClick: (id: string) => void; // Send only id, hook will calculate points
+  onClick: (id: string) => void;
 }
 
 const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) => {
   const IconComponent = target.icon;
 
-  // Use target.currentSize for rendering
   const displaySize = target.currentSize;
 
-  const targetBaseClasses = "transform transition-transform focus:outline-none flex items-center justify-center";
+  const targetBaseClasses = "transform focus:outline-none flex items-center justify-center";
   const targetTypeClasses = {
     standard: "focus:ring-2 focus:ring-offset-2 focus:ring-primary border-2 border-white/60",
     precision: "focus:ring-2 focus:ring-offset-2 focus:ring-accent border-2 border-white/80 shadow-lg",
@@ -23,8 +22,8 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
 
   return (
     <motion.button
-      layoutId={target.id}
-      initial={{ scale: 0, opacity: 0, rotate: Math.random() * 40 - 20 }}
+      layoutId={target.id} // Important for AnimatePresence
+      initial={{ scale: 0, opacity: 0, rotate: Math.random() * 30 - 15 }}
       animate={{ 
         scale: 1, 
         opacity: 1, 
@@ -32,12 +31,11 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
         width: `${displaySize}px`, 
         height: `${displaySize}px`,
       }}
-      exit={{ scale: 0, opacity: 0, transition: { duration: 0.15 } }}
-      whileTap={{ scale: 0.85, opacity: 0.7, rotate: 5 }}
-      transition={{ type: 'spring', stiffness: 450, damping: 18 }}
+      exit={{ scale: 0, opacity: 0, transition: { duration: 0.15, ease: "easeOut" } }}
+      whileTap={{ scale: 0.85, opacity: 0.7, rotate: 3 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 25 }} // Slightly softer spring
       style={{
         position: 'absolute',
-        // Calculate top-left based on center (target.x, target.y) and current size
         left: `calc(${target.x}% - ${displaySize / 2}px)`,
         top: `calc(${target.y}% - ${displaySize / 2}px)`,
         backgroundColor: target.color,
@@ -58,3 +56,5 @@ const TargetComponent: React.FC<TargetComponentProps> = ({ target, onClick }) =>
 };
 
 export default TargetComponent;
+
+    
