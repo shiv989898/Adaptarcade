@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { TargetConfig, ScoreEntry } from '@/types/game';
+import type { TargetConfig, ScoreEntry, Difficulty } from '@/types/game';
 import { getLeaderboard, addScoreToLeaderboard } from '@/lib/localStorageHelper';
 import { useToast } from '@/hooks/use-toast';
 
@@ -10,15 +10,54 @@ export type GameStatus = 'idle' | 'countdown' | 'playing' | 'gameOver';
 const GAME_DURATION = 30; // seconds
 const COUNTDOWN_SECONDS = 3;
 
-// Define target tiers: points, size, and color
-const TARGET_TIERS = [
-  { points: 20, size: 40, color: 'hsl(var(--accent))' }, // Hardest: Smallest, highest points, accent color
-  { points: 10, size: 55, color: 'hsl(var(--primary))' }, // Medium: Mid size, standard points, primary color
-  { points: 5,  size: 70, color: '#34D399' },          // Easiest: Largest, lowest points, emerald green
-  { points: 15, size: 45, color: '#F59E0B' }, // Another option: Amber
-  { points: 8,  size: 60, color: '#EC4899' }, // Pink
-];
+interface TargetTierParams {
+  points: number;
+  size: number;
+  color: string;
+}
 
+interface DifficultySettings {
+  targetDespawnTime: number; 
+  minSpawnDelay: number;    
+  maxSpawnDelay: number;    
+  targetTiers: TargetTierParams[]; 
+}
+
+const DIFFICULTY_CONFIG: Record<Difficulty, DifficultySettings> = {
+  easy: {
+    targetDespawnTime: 3500,
+    minSpawnDelay: 600,
+    maxSpawnDelay: 1200,
+    targetTiers: [
+      { points: 5,  size: 75, color: '#34D399' }, 
+      { points: 8,  size: 65, color: '#EC4899' }, 
+      { points: 10, size: 60, color: 'hsl(var(--primary))' }, 
+    ],
+  },
+  medium: {
+    targetDespawnTime: 2500,
+    minSpawnDelay: 400,
+    maxSpawnDelay: 800,
+    targetTiers: [
+      { points: 20, size: 40, color: 'hsl(var(--accent))' }, 
+      { points: 10, size: 55, color: 'hsl(var(--primary))' }, 
+      { points: 5,  size: 70, color: '#34D399' },          
+      { points: 15, size: 45, color: '#F59E0B' }, 
+      { points: 8,  size: 60, color: '#EC4899' }, 
+    ],
+  },
+  hard: {
+    targetDespawnTime: 1800,
+    minSpawnDelay: 200,
+    maxSpawnDelay: 500,
+    targetTiers: [
+      { points: 25, size: 35, color: 'hsl(var(--accent))' }, 
+      { points: 20, size: 40, color: 'hsl(var(--destructive))' }, 
+      { points: 15, size: 45, color: '#F59E0B' }, 
+      { points: 10, size: 50, color: 'hsl(var(--primary))' },
+    ],
+  },
+};
 
 export const useGameLogic = () => {
   const [score, setScore] = useState(0);
@@ -27,11 +66,14 @@ export const useGameLogic = () => {
   const [targets, setTargets] = useState<TargetConfig[]>([]);
   const [leaderboardScores, setLeaderboardScores] = useState<ScoreEntry[]>([]);
   const [countdownValue, setCountdownValue] = useState(COUNTDOWN_SECONDS);
+  const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>('medium');
 
   const { toast } = useToast();
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const targetGenerationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const playerNameRef = useRef<string>('ReflexMaster');
+  const gameTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const targetSpawnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const targetDespawnTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentTargetIdRef = useRef<string | null>(null);
+  const playerNameRef = useRef<string>('ReflexChampion');
 
   const loadLeaderboard = useCallback(() => {
     setLeaderboardScores(getLeaderboard());
@@ -41,54 +83,81 @@ export const useGameLogic = () => {
     loadLeaderboard();
   }, [loadLeaderboard]);
 
-  const clearTimers = useCallback(() => {
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    if (targetGenerationIntervalRef.current) clearInterval(targetGenerationIntervalRef.current);
+  const clearAllTimers = useCallback(() => {
+    if (gameTimerRef.current) clearInterval(gameTimerRef.current);
+    if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
+    if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
   }, []);
 
-  const generateTarget = useCallback(() => {
-    const newTargetId = `target-${Date.now()}-${Math.random()}`;
+  const scheduleNextTarget = useCallback(() => {
+    if (gameStatus !== 'playing') return;
+
+    if (targetSpawnTimeoutRef.current) clearTimeout(targetSpawnTimeoutRef.current);
     
-    // Randomly select a tier for the new target
-    const tier = TARGET_TIERS[Math.floor(Math.random() * TARGET_TIERS.length)];
+    const { minSpawnDelay, maxSpawnDelay } = DIFFICULTY_CONFIG[currentDifficulty];
+    const spawnDelay = Math.random() * (maxSpawnDelay - minSpawnDelay) + minSpawnDelay;
+
+    targetSpawnTimeoutRef.current = setTimeout(() => {
+      generateTarget();
+    }, spawnDelay);
+  }, [gameStatus, currentDifficulty]); // generateTarget will be memoized separately
+
+  const generateTarget = useCallback(() => {
+    if (gameStatus !== 'playing') return;
+
+    const newTargetId = `target-${Date.now()}-${Math.random()}`;
+    currentTargetIdRef.current = newTargetId;
+    
+    const { targetTiers, targetDespawnTime } = DIFFICULTY_CONFIG[currentDifficulty];
+    const tierParams = targetTiers[Math.floor(Math.random() * targetTiers.length)];
 
     const newTarget: TargetConfig = {
       id: newTargetId,
-      x: Math.random() * 80 + 10, // % position from left (10% to 90%)
-      y: Math.random() * 80 + 10, // % position from top (10% to 90%)
-      size: tier.size,
-      points: tier.points,
-      color: tier.color,
+      x: Math.random() * 80 + 10, 
+      y: Math.random() * 80 + 10, 
+      ...tierParams,
     };
     setTargets([newTarget]);
-  }, []);
 
-  const startGame = useCallback(() => {
-    clearTimers();
+    if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
+    targetDespawnTimeoutRef.current = setTimeout(() => {
+      if (currentTargetIdRef.current === newTargetId && gameStatus === 'playing') { // Check if target still exists and game running
+        setTargets([]); // Remove target if it timed out
+        currentTargetIdRef.current = null;
+        scheduleNextTarget(); // Spawn next one
+      }
+    }, targetDespawnTime);
+  }, [gameStatus, currentDifficulty, scheduleNextTarget]);
+
+
+  const startGame = useCallback((difficulty: Difficulty) => {
+    setCurrentDifficulty(difficulty);
+    clearAllTimers();
     setScore(0);
     setTimeLeft(GAME_DURATION);
     setCountdownValue(COUNTDOWN_SECONDS);
     setGameStatus('countdown');
     setTargets([]); 
+    currentTargetIdRef.current = null;
 
     let currentCountdown = COUNTDOWN_SECONDS;
-    timerIntervalRef.current = setInterval(() => {
+    gameTimerRef.current = setInterval(() => {
       currentCountdown--;
       setCountdownValue(currentCountdown);
       if (currentCountdown === 0) {
-        clearInterval(timerIntervalRef.current!);
+        clearInterval(gameTimerRef.current!);
         setGameStatus('playing');
-        generateTarget(); 
+        scheduleNextTarget(); 
         
-        timerIntervalRef.current = setInterval(() => {
+        gameTimerRef.current = setInterval(() => {
           setTimeLeft(prevTime => {
             if (prevTime <= 1) {
-              clearInterval(timerIntervalRef.current!);
+              clearAllTimers();
               setGameStatus('gameOver');
-              // Pass the current score directly to addScoreToLeaderboard
-              addScoreToLeaderboard({ playerName: playerNameRef.current, score });
+              addScoreToLeaderboard({ playerName: playerNameRef.current, score, difficulty: currentDifficulty });
               loadLeaderboard();
               setTargets([]); 
+              currentTargetIdRef.current = null;
               return 0;
             }
             return prevTime - 1;
@@ -96,37 +165,38 @@ export const useGameLogic = () => {
         }, 1000);
       }
     }, 1000);
-  }, [clearTimers, generateTarget, loadLeaderboard, score]); // Added score to dependency array for addScoreToLeaderboard
+  }, [clearAllTimers, loadLeaderboard, scheduleNextTarget]); // Removed score, currentDifficulty from here, managed by state
 
   const handleTargetClick = useCallback((id: string, points: number) => {
-    if (gameStatus !== 'playing') return;
-    setScore(prevScore => prevScore + points);
-    setTargets(prevTargets => prevTargets.filter(target => target.id !== id));
-    
-    generateTarget();
+    if (gameStatus !== 'playing' || currentTargetIdRef.current !== id) return;
 
+    if (targetDespawnTimeoutRef.current) clearTimeout(targetDespawnTimeoutRef.current);
+    
+    setScore(prevScore => prevScore + points);
+    setTargets([]); 
+    currentTargetIdRef.current = null;
+    
     toast({
       title: `+${points} points!`,
-      description: points > 10 ? "Great shot!" : (points < 8 ? "Nice one!" : "Target Hit!"),
+      description: points > 15 ? "Excellent!" : (points > 8 ? "Great shot!" : "Nice one!"),
       duration: 1200,
-      variant: points > 10 ? "default" : "default", // Could have different variants
     });
-  }, [gameStatus, generateTarget, toast]);
+
+    scheduleNextTarget();
+  }, [gameStatus, toast, scheduleNextTarget]);
 
   const restartGame = useCallback(() => {
-    clearTimers();
+    clearAllTimers();
     setGameStatus('idle');
     setTargets([]);
-    // Explicitly call startGame if that's the desired behavior of "Play Again" from idle
-    // or let StartScreen handle the startGame call.
-    // For HUD restart, it should probably go to 'idle' then StartScreen.
-  }, [clearTimers]);
+    currentTargetIdRef.current = null;
+  }, [clearAllTimers]);
 
   useEffect(() => {
     return () => {
-      clearTimers();
+      clearAllTimers();
     };
-  }, [clearTimers]);
+  }, [clearAllTimers]);
 
   return {
     score,
@@ -135,6 +205,7 @@ export const useGameLogic = () => {
     targets,
     leaderboardScores,
     countdownValue,
+    currentDifficulty, // Expose current difficulty if needed by UI
     startGame,
     restartGame,
     handleTargetClick,

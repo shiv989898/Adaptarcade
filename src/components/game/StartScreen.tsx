@@ -11,6 +11,7 @@ interface StartScreenProps {
   description?: string;
   instructions?: { title: string; steps: string[] };
   icon?: LucideIcon;
+  difficultySelector?: React.ReactNode; // New prop for difficulty UI
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({ 
@@ -24,7 +25,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
       "Try to get the highest score!"
     ]
   },
-  icon: IconComponent = Zap, // Default to Zap icon
+  icon: IconComponent = Zap,
+  difficultySelector,
 }) => {
   return (
     <motion.div 
@@ -45,6 +47,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6 px-4 sm:px-6 pb-6">
+          {difficultySelector && (
+            <div className="w-full space-y-3 py-3 border-y border-border/50">
+              <p className="text-sm font-medium text-center text-muted-foreground">Select Difficulty:</p>
+              {difficultySelector}
+            </div>
+          )}
           <Button 
             onClick={onStartGame} 
             size="lg" 

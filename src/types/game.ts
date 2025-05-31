@@ -15,6 +15,7 @@ export interface ScoreEntry {
   playerName: string;
   score: number;
   date: string;
+  difficulty?: Difficulty; // Optional: to track difficulty on leaderboard
 }
 
 export interface GameSettings {
@@ -37,3 +38,6 @@ export interface MoleHole {
   id: number;
   hasMole: boolean;
 }
+
+// Difficulty level type
+export type Difficulty = 'easy' | 'medium' | 'hard';
