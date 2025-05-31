@@ -4,16 +4,17 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react'; // Removed Hammer, Trophy as they are in other components
+import { ArrowLeft, Hammer } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import HUD from '@/components/game/HUD';
 import LeaderboardDialog from '@/components/game/LeaderboardDialog';
 import StartScreen from '@/components/game/StartScreen';
 import GameOverScreen from '@/components/game/GameOverScreen';
 import Mole from '@/components/game/Mole';
-import { useMoleMashLogic, type MoleMashGameStatus } from '@/hooks/useMoleMashLogic';
-import type { ScoreEntry } from '@/types/game';
-import { Hammer } from 'lucide-react'; // Icon for StartScreen
+import { useMoleMashLogic } from '@/hooks/useMoleMashLogic';
+import type { ScoreEntry, Difficulty } from '@/types/game';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 export default function MoleMashPage() {
   const {
@@ -24,6 +25,7 @@ export default function MoleMashPage() {
     leaderboardScores,
     moles,
     gridSize,
+    currentDifficulty,
     startGame,
     restartGame,
     handleMoleClick,
@@ -31,6 +33,7 @@ export default function MoleMashPage() {
   } = useMoleMashLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
 
   useEffect(() => {
     loadLeaderboard();
@@ -38,8 +41,12 @@ export default function MoleMashPage() {
 
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
+  const handleStartGameWithDifficulty = () => {
+    startGame(selectedDifficulty); 
+  };
+  
   const handlePlayAgainFromGameOver = () => {
-    startGame(); 
+    restartGame(); 
   };
   
   const handleShowLeaderboardFromGameOver = () => {
@@ -47,15 +54,33 @@ export default function MoleMashPage() {
   };
 
   const gameTitle = "Mole Mash";
-  const gameDescription = "Whack the moles as they appear! Quick reflexes are key.";
+  const gameDescription = "Whack the moles as they appear! Quick reflexes are key. Difficulty affects mole speed.";
   const gameInstructions = {
     title: "How to Mash:",
     steps: [
+      "Select your difficulty.",
       "Click or tap moles that pop out of holes.",
       "Each mole hit scores 1 point.",
       "Score as many as you can before time runs out!"
     ]
   };
+
+  const difficultySelectorUI = (
+    <RadioGroup 
+      value={selectedDifficulty} 
+      onValueChange={(value) => setSelectedDifficulty(value as Difficulty)}
+      className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 py-2"
+    >
+      {(['easy', 'medium', 'hard'] as Difficulty[]).map(diff => (
+        <div key={diff} className="flex items-center space-x-2">
+          <RadioGroupItem value={diff} id={`diff-mm-${diff}`} className="text-primary focus:ring-primary"/>
+          <Label htmlFor={`diff-mm-${diff}`} className="capitalize text-sm sm:text-base font-medium hover:text-primary cursor-pointer">
+            {diff}
+          </Label>
+        </div>
+      ))}
+    </RadioGroup>
+  );
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-green-800/20 to-yellow-700/20">
@@ -79,7 +104,7 @@ export default function MoleMashPage() {
               timeLeft={timeLeft}
               onToggleLeaderboard={toggleLeaderboard}
               onRestart={restartGame} 
-              gameStatus={gameStatus as any}
+              gameStatus={gameStatus}
             />
           </motion.div>
         )}
@@ -87,11 +112,12 @@ export default function MoleMashPage() {
 
       {gameStatus === 'idle' && (
          <StartScreen 
-            onStartGame={startGame} 
+            onStartGame={handleStartGameWithDifficulty} 
             title={gameTitle} 
             description={gameDescription}
             instructions={gameInstructions}
             icon={Hammer}
+            difficultySelector={difficultySelectorUI}
           />
       )}
 
@@ -104,7 +130,7 @@ export default function MoleMashPage() {
           className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm text-center"
         >
           <p className="text-8xl font-bold text-primary animate-ping" style={{animationDuration: '1s'}}>{countdownValue}</p>
-          <p className="text-2xl font-headline mt-4">Get Ready to Mash!</p>
+          <p className="text-2xl font-headline mt-4">Get Ready to Mash ({selectedDifficulty})!</p>
         </motion.div>
       )}
       
@@ -115,14 +141,12 @@ export default function MoleMashPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center justify-center w-full mt-16 sm:mt-20" // Adjusted margin for HUD
+            className="flex flex-col items-center justify-center w-full mt-16 sm:mt-20" 
           >
             <div 
               className="grid gap-2 sm:gap-3 p-3 sm:p-4 bg-lime-200/70 dark:bg-yellow-900/50 border-4 border-yellow-700/80 dark:border-yellow-600/70 rounded-xl shadow-xl"
               style={{
                 gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                // Mole width is 5rem (w-20) or 6rem (w-24) + gap + padding.
-                // Assuming sm:w-24 (6rem) and sm:gap-3 (0.75rem), p-4 (1rem each side = 2rem)
                 width: `calc(${gridSize} * 6rem + (${gridSize-1} * 0.75rem) + 2rem)`, 
                 maxWidth: '90vw',
               }}
@@ -145,7 +169,7 @@ export default function MoleMashPage() {
           score={score} 
           onPlayAgain={handlePlayAgainFromGameOver} 
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
-          gameName={gameTitle}
+          gameName={`${gameTitle} (${currentDifficulty})`}
         />
       )}
       
@@ -153,7 +177,7 @@ export default function MoleMashPage() {
         isOpen={isLeaderboardOpen} 
         onClose={toggleLeaderboard} 
         scores={leaderboardScores as ScoreEntry[]} 
-        gameName={gameTitle}
+        gameName={gameTitle} 
       />
     </main>
   );
