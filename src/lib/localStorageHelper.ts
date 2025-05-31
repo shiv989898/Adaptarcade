@@ -1,19 +1,19 @@
 
-import type { ScoreEntry } from '@/types/game'; // Standard ScoreEntry for TargetTap
+import type { ScoreEntry, DecoyFrequencyMode } from '@/types/game';
 
-const TARGET_TAP_LEADERBOARD_KEY = 'targetTapLeaderboard';
+const TARGET_TAP_LEADERBOARD_KEY = 'precisionTapLeaderboard'; // Updated key name
 const MAX_LEADERBOARD_ENTRIES = 10;
 
-// Specific for Target Tap
 export const getLeaderboard = (): ScoreEntry[] => {
   if (typeof window === 'undefined') return [];
   const data = localStorage.getItem(TARGET_TAP_LEADERBOARD_KEY);
   return data ? JSON.parse(data) : [];
 };
 
-export const addScoreToLeaderboard = (newScore: Omit<ScoreEntry, 'id' | 'date'>): void => {
+// Omit 'id' and 'date' as they are generated, mode is now required
+export const addScoreToLeaderboard = (newScore: { playerName: string; score: number; mode: DecoyFrequencyMode }): void => {
   if (typeof window === 'undefined') return;
-  const scores = getLeaderboard(); // Gets Target Tap scores
+  const scores = getLeaderboard();
   const entry: ScoreEntry = {
     ...newScore,
     id: Date.now().toString() + Math.random().toString(36).substring(2,9),
@@ -25,6 +25,7 @@ export const addScoreToLeaderboard = (newScore: Omit<ScoreEntry, 'id' | 'date'>)
     if (a.score !== b.score) {
       return b.score - a.score; 
     }
+    // If scores are equal, sort by date (newest first)
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   
@@ -33,8 +34,5 @@ export const addScoreToLeaderboard = (newScore: Omit<ScoreEntry, 'id' | 'date'>)
 };
 
 
-// Note: For Quick Click Challenge, its leaderboard logic is currently self-contained
-// in useQuickClickLogic.ts using its own localStorage key.
-// You could generalize this helper more if many games share the exact same ScoreEntry structure
-// by passing the leaderboard key as an argument to generic functions.
-// e.g. getScoresByKey(key: string), addScoreByKey(key: string, newScore: ...)
+// Note: For Quick Click Challenge and Mole Mash, their leaderboard logic remains
+// self-contained in their respective hooks using their own localStorage keys.

@@ -11,10 +11,16 @@ import { useGameLogic } from '@/hooks/useGameLogic';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Zap, Crosshair, ShieldX, Disc } from 'lucide-react'; // Disc imported
+import { ArrowLeft, Zap, Crosshair, ShieldX, Disc, Smile, Meh, Frown } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import type { Difficulty, ScoreEntry } from '@/types/game';
+import type { DecoyFrequencyMode, ScoreEntry } from '@/types/game';
+
+const MODE_DETAILS: Record<DecoyFrequencyMode, { label: string; icon: LucideIcon; description: string }> = {
+  zen: { label: "Zen", icon: Smile, description: "0% Decoys: Pure precision practice." },
+  challenging: { label: "Challenging", icon: Meh, description: "25% Decoys: A balanced test." },
+  expert: { label: "Expert", icon: Frown, description: "40% Decoys: High risk, high reward!" },
+};
 
 export default function TargetTapPage() {
   const {
@@ -24,28 +30,40 @@ export default function TargetTapPage() {
     targets,
     leaderboardScores,
     countdownValue,
-    currentDifficulty,
+    currentMode, // Use currentMode from hook
     startGame,
     restartGame,
     handleTargetClick,
     loadLeaderboard,
+    setCurrentMode, // Use to set mode from UI
   } = useGameLogic();
 
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
+  // Selected mode for the UI, hook's currentMode is the source of truth during game
+  const [selectedUIMode, setSelectedUIMode] = useState<DecoyFrequencyMode>('challenging'); 
 
   useEffect(() => {
     loadLeaderboard();
   }, [loadLeaderboard, gameStatus]);
 
+  useEffect(() => {
+    // Sync UI selection with hook's mode if it changes (e.g. on initial load if hook has a different default)
+    // This is mostly for consistency if the hook's default changes.
+    setSelectedUIMode(currentMode);
+  }, [currentMode]);
+
+
   const toggleLeaderboard = () => setIsLeaderboardOpen(!isLeaderboardOpen);
 
-  const handleStartGameWithDifficulty = () => {
-    startGame(selectedDifficulty);
+  const handleStartGameWithMode = () => {
+    startGame(selectedUIMode);
   };
 
   const handlePlayAgainFromGameOver = () => {
-    restartGame();
+    // Restart will use the mode that was active during the game over
+    // or we can let the user re-select from the idle screen after restartGame puts it there.
+    // For now, restartGame transitions to idle, allowing re-selection.
+    restartGame(); 
   };
 
   const handleShowLeaderboardFromGameOver = () => {
@@ -53,38 +71,49 @@ export default function TargetTapPage() {
   };
 
   const gameTitle = "Precision Tap";
-  const gameDescription = "Test your accuracy and speed! Hit valuable targets, avoid decoys. Points are awarded based on precision.";
+  const gameDescription = "Targets grow, points decay! Tap fast & accurately. Choose your challenge.";
   const gameInstructions = {
     title: "How to Tap with Precision:",
     steps: [
-      <>Select your difficulty.</>,
+      <>Select your game mode (decoy frequency).</>,
+      <>Targets start small and <span className="font-semibold text-accent">grow</span>. Tap them quick!</>,
+      <>The <span className="font-semibold text-primary">smaller</span> the target when tapped, the <span className="font-semibold text-primary">more points</span> you get.</>,
       <>Blue/Purple targets (<Disc className='inline h-3 w-3 text-primary relative top-[-1px]' />): Standard points.</>,
-      <>Bright Green, smaller targets (<Crosshair className='inline h-3 w-3 text-accent relative top-[-1px]' />): High points! Hit them fast.</>,
+      <>Bright Green, smaller targets (<Crosshair className='inline h-3 w-3 text-accent relative top-[-1px]' />): High value! Hit them fast.</>,
       <>Red decoy targets (<ShieldX className='inline h-3 w-3 text-destructive relative top-[-1px]' />): Deduct points! Do NOT tap.</>,
       <>Score as high as you can before time runs out!</>
     ]
   };
 
-  const handleDifficultyChange = useCallback((value: string) => {
-    setSelectedDifficulty(value as Difficulty);
-  }, []);
+  const handleModeChange = useCallback((value: string) => {
+    const newMode = value as DecoyFrequencyMode;
+    setSelectedUIMode(newMode);
+    // Optional: if you want the hook's mode to update instantly on selection, not just on game start
+    // setCurrentMode(newMode); 
+  }, [setSelectedUIMode]);
 
-  const difficultySelectorUI = useCallback((
+  const modeSelectorUI = useCallback((
     <RadioGroup
-      value={selectedDifficulty}
-      onValueChange={handleDifficultyChange}
+      value={selectedUIMode}
+      onValueChange={handleModeChange}
       className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 py-2"
     >
-      {(['easy', 'medium', 'hard'] as Difficulty[]).map(diff => (
-        <div key={diff} className="flex items-center space-x-2">
-          <RadioGroupItem value={diff} id={`diff-${diff}`} className="text-primary focus:ring-primary"/>
-          <Label htmlFor={`diff-${diff}`} className="capitalize text-sm sm:text-base font-medium hover:text-primary cursor-pointer">
-            {diff}
-          </Label>
-        </div>
-      ))}
+      {(['zen', 'challenging', 'expert'] as DecoyFrequencyMode[]).map(mode => {
+        const Icon = MODE_DETAILS[mode].icon;
+        return (
+          <div key={mode} className="flex items-center space-x-2 group cursor-pointer" onClick={() => handleModeChange(mode)}>
+            <RadioGroupItem value={mode} id={`mode-${mode}`} className="text-primary focus:ring-primary"/>
+            <Label htmlFor={`mode-${mode}`} className="capitalize text-sm sm:text-base font-medium hover:text-primary cursor-pointer flex items-center gap-1.5">
+              <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"/> {MODE_DETAILS[mode].label}
+            </Label>
+          </div>
+        );
+      })}
     </RadioGroup>
-  ), [selectedDifficulty, handleDifficultyChange]);
+  ), [selectedUIMode, handleModeChange]);
+  
+  const currentModeDetails = MODE_DETAILS[gameStatus === 'playing' || gameStatus === 'gameOver' ? currentMode : selectedUIMode];
+
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-br from-indigo-700/10 via-purple-700/10 to-pink-700/10">
@@ -97,7 +126,7 @@ export default function TargetTapPage() {
       <AnimatePresence>
         {gameStatus !== 'idle' && gameStatus !== 'countdown' && gameStatus !== 'gameOver' && (
           <motion.div
-            key="hud-tt"
+            key="hud-pt"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -116,32 +145,33 @@ export default function TargetTapPage() {
 
       {gameStatus === 'idle' && (
          <StartScreen
-            onStartGame={handleStartGameWithDifficulty}
+            onStartGame={handleStartGameWithMode}
             title={gameTitle}
             description={gameDescription}
             instructions={gameInstructions}
             icon={Zap}
-            difficultySelector={difficultySelectorUI}
+            difficultySelector={modeSelectorUI} // Pass modeSelectorUI here
           />
       )}
 
       {gameStatus === 'countdown' && (
         <motion.div
-          key="countdown-tt"
+          key="countdown-pt"
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.5, opacity: 0 }}
           className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-20 backdrop-blur-sm text-center"
         >
           <p className="text-8xl font-bold text-primary animate-ping" style={{animationDuration: '1s'}}>{countdownValue}</p>
-          <p className="text-2xl font-headline mt-4">Get Ready for {gameTitle} ({selectedDifficulty})!</p>
+          <p className="text-2xl font-headline mt-4">Get Ready for {gameTitle} ({currentModeDetails.label} Mode)!</p>
+          <p className="text-sm text-muted-foreground">{currentModeDetails.description}</p>
         </motion.div>
       )}
 
       <AnimatePresence>
         {gameStatus === 'playing' && (
           <motion.div
-            key="gameboard-tt"
+            key="gameboard-pt"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -157,8 +187,8 @@ export default function TargetTapPage() {
           score={score}
           onPlayAgain={handlePlayAgainFromGameOver}
           onShowLeaderboard={handleShowLeaderboardFromGameOver}
-          gameName={`${gameTitle} (${currentDifficulty})`}
-          additionalInfo={score > 100 ? "Excellent precision!" : (score > 0 ? "Good effort!" : "Aim carefully next time!")}
+          gameName={`${gameTitle} (${currentModeDetails.label} Mode)`}
+          additionalInfo={score > 150 ? "Incredible precision!" : (score > 50 ? "Great tapping!" : "Keep practicing that accuracy!")}
         />
       )}
 
@@ -166,7 +196,7 @@ export default function TargetTapPage() {
         isOpen={isLeaderboardOpen}
         onClose={toggleLeaderboard}
         scores={leaderboardScores as ScoreEntry[]}
-        gameName={gameTitle}
+        gameName={`${gameTitle} (${currentModeDetails.label})`}
       />
     </main>
   );

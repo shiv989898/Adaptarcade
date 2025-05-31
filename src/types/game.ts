@@ -3,16 +3,21 @@ import type { LucideIcon } from 'lucide-react';
 
 export type TargetType = 'standard' | 'precision' | 'decoy';
 
+export type DecoyFrequencyMode = 'zen' | 'challenging' | 'expert';
+
 export interface TargetConfig {
   id: string;
   x: number; // percentage
   y: number; // percentage
-  size: number; // pixels
-  points: number; // Can be negative
+  initialSize: number; // pixels, starting size
+  maxSize: number; // pixels, maximum size it can grow to
+  currentSize: number; // pixels, current animated size
+  points: number; // Base points if hit instantly (Can be negative for decoys)
   color: string;
   type: TargetType;
-  icon?: LucideIcon; // For visual differentiation
-  despawnTime?: number; // Optional: specific despawn time for this target
+  icon?: LucideIcon;
+  spawnTime: number; // Timestamp of when it was spawned
+  despawnTime: number; // Duration it stays on screen before auto-removing
 }
 
 export interface ScoreEntry {
@@ -20,7 +25,7 @@ export interface ScoreEntry {
   playerName: string;
   score: number;
   date: string;
-  difficulty?: Difficulty; // Optional: to track difficulty on leaderboard
+  mode?: DecoyFrequencyMode; // Optional: to track mode on leaderboard
 }
 
 export interface GameSettings {
@@ -42,7 +47,5 @@ export interface MoleHole {
   hasMole: boolean;
 }
 
-// Difficulty level type
+// Difficulty level type for Mole Mash (Target Tap no longer uses this)
 export type Difficulty = 'easy' | 'medium' | 'hard';
-
-// Removed Flappy Bird specific types as the game was removed.
