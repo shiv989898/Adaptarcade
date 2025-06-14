@@ -3,7 +3,7 @@
 
 Adaptarcade is a modern web-based arcade featuring a collection of fun and interactive mini-games. Built with a sleek design and smooth animations, it offers a delightful user experience.
 
-![Adaptarcade Screenshot]![image](https://github.com/user-attachments/assets/7fb571dc-0d0f-452d-ad9e-14184d4c4880)
+![image](https://github.com/user-attachments/assets/7fb571dc-0d0f-452d-ad9e-14184d4c4880)
 
 
 
