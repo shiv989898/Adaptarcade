@@ -150,4 +150,4 @@ This project is currently unlicensed. Consider adding an open-source license lik
 ---
 
 Enjoy playing at Adaptarcade!
-```
+
